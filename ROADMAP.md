@@ -98,12 +98,13 @@
 ### Tasks
 
 ```
-[ ] Train place primitive (target position reward)
-[ ] Train move_to primitive (approach without grasp)
-[ ] Scripted baseline: hard-coded sub-task sequence + PD controller
-[ ] Evaluate all 3 primitives independently (100 episodes each)
-[ ] Comparison table: RL policy vs scripted vs random
-[ ] git tag v1.0.4
+[x] Train place primitive (target position reward)
+[x] Train move_to primitive (approach without grasp)
+[x] Scripted baseline: hard-coded sub-task sequence + PD controller
+[x] Evaluate all 3 primitives independently (25 episodes each)
+[x] Comparison table: RL policy vs scripted vs random
+[x] Episode truncation (200 steps) for all MultiObjectEnv subclasses
+[x] git tag v1.0.4
 ```
 
 ---
@@ -215,7 +216,7 @@ Before running `git tag v1.0.x`:
 | v1.0.1 | ✅ Complete | 2026-02-22 | Multi-object spawning, PickPlace/ColorPick/Stack envs, 78 tests |
 | v1.0.2 | ✅ Complete | 2026-02-22 | SAC agent, twin critics, replay buffer, 103 tests |
 | v1.0.3 | ✅ Complete | 2026-02-22 | Pick training script, 130K training run, eval framework, 106 tests |
-| v1.0.4 | 🔲 Not started | — | — |
+| v1.0.4 | ✅ Complete | 2026-02-22 | MoveToEnv, PlaceEnv, scripted baselines, comparison eval, 133 tests |
 | v1.0.5 | 🔲 Not started | — | — |
 | v1.0.6 | 🔲 Not started | — | — |
 | v1.0.7 | 🔲 Not started | — | — |

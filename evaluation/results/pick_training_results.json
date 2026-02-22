@@ -1,7 +1,7 @@
 {
   "final_eval": {
-    "mean_reward": -169.585147548268,
-    "std_reward": 17.404284887489943,
+    "mean_reward": -152.53229768939457,
+    "std_reward": 18.96087866648652,
     "success_rate": 0.0,
     "n_episodes": 100
   },
@@ -11,15 +11,15 @@
   "eval_history": [
     {
       "step": 100,
-      "mean_reward": -168.59975424838416,
-      "std_reward": 2.769321306535147,
+      "mean_reward": -152.00565515110907,
+      "std_reward": 2.5955601093507,
       "success_rate": 0.0,
       "n_episodes": 2
     },
     {
       "step": 200,
-      "mean_reward": -168.59975424838416,
-      "std_reward": 2.769321306535147,
+      "mean_reward": -152.00565515110907,
+      "std_reward": 2.5955601093507,
       "success_rate": 0.0,
       "n_episodes": 2
     }

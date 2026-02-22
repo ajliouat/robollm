@@ -1,6 +1,9 @@
 """RoboLLM policies — SAC/PPO implementations."""
 
-__all__ = ["Actor", "Critic", "TwinCritic", "SACAgent", "SACConfig"]
+__all__ = [
+    "Actor", "Critic", "TwinCritic", "SACAgent", "SACConfig",
+    "ScriptedPickPlace", "ScriptedMoveTo",
+]
 
 
 def __getattr__(name: str):
@@ -10,4 +13,7 @@ def __getattr__(name: str):
     if name in ("SACAgent", "SACConfig"):
         from policies.sac import SACAgent, SACConfig
         return {"SACAgent": SACAgent, "SACConfig": SACConfig}[name]
+    if name in ("ScriptedPickPlace", "ScriptedMoveTo"):
+        from policies.scripted import ScriptedPickPlace, ScriptedMoveTo
+        return {"ScriptedPickPlace": ScriptedPickPlace, "ScriptedMoveTo": ScriptedMoveTo}[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

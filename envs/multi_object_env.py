@@ -73,6 +73,7 @@ class MultiObjectEnv(gym.Env):
         allowed_shapes: Sequence[str] = SHAPES,
         allowed_colors: Sequence[str] | None = None,
         unique_colors: bool = True,
+        max_episode_steps: int = 200,
     ):
         super().__init__()
 
@@ -87,6 +88,8 @@ class MultiObjectEnv(gym.Env):
             list(allowed_colors) if allowed_colors else None
         )
         self._unique_colors = unique_colors
+        self._max_episode_steps = max_episode_steps
+        self._elapsed_steps = 0
 
         # Will be populated on first reset
         self.model: mujoco.MjModel | None = None
@@ -166,6 +169,7 @@ class MultiObjectEnv(gym.Env):
 
     def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)
+        self._elapsed_steps = 0
 
         # Generate new randomized objects
         obj_specs = generate_object_specs(
@@ -214,7 +218,8 @@ class MultiObjectEnv(gym.Env):
         obs = self._get_obs()
         reward = self._compute_reward()
         terminated = self._check_terminated()
-        truncated = False
+        self._elapsed_steps += 1
+        truncated = self._elapsed_steps >= self._max_episode_steps
         info = self._get_info()
 
         return obs, reward, terminated, truncated, info

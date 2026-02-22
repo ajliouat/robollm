@@ -4,7 +4,7 @@
 
 ---
 
-## Status: v1.0.3 COMPLETE — Pick Primitive Training
+## Status: v1.0.4 COMPLETE — Place + Move Primitives
 
 ### Pre-Development Setup (Week 0)
 - [x] Install MuJoCo on Mac (via `pip install mujoco`)
@@ -90,6 +90,84 @@ NEW:  tests/conftest.py
 NEW:  tests/test_envs.py
 NEW:  notebooks/.gitkeep
 NEW:  videos/.gitkeep
+MOD:  DEVELOPMENT_LOG.md
+```
+
+---
+
+## v1.0.4 — Place + Move Primitives (2026-02-22)
+
+### What was built
+Two new primitive environments and scripted baseline controllers for comparison.
+
+**MoveToEnv (`envs/move_to.py`):**
+- Simplest primitive — move EE close to object, no grasping
+- 29D observation (base multi-object obs, 1 object)
+- Reward: -5 × dist(EE, obj) + 50 bonus when within 3 cm
+- Terminates on success (3 cm threshold)
+
+**PlaceEnv (`envs/place.py`):**
+- Place held object at goal position on table
+- Object initialised near EE with closed gripper (post-grasp simulation)
+- 32D observation (29 base + 3 goal position)
+- Reward: -10 × dist(obj, goal) - height penalty + 50 success bonus
+- Terminates when object within 4 cm of goal
+
+**Scripted baselines (`policies/scripted.py`):**
+- ScriptedPickPlace: 8-phase state machine (approach → descend → grasp → lift → move → lower → release → done)
+- ScriptedMoveTo: Simple P-controller pointing EE toward object
+- Both use privileged info (exact object/goal positions from env info dict)
+
+**Episode truncation (`envs/multi_object_env.py`):**
+- Added `max_episode_steps=200` default to all MultiObjectEnv subclasses
+- Step counter reset on `reset()`, truncation flag set in `step()`
+- Critical for evaluation — random agents no longer run forever
+
+**Comparison results (25 episodes per pair):**
+| Environment | Policy   | Success% | Mean Return | Mean Length |
+|-------------|----------|----------|-------------|-------------|
+| Move To     | Random   |     0.0% |      -722.3 |       200.0 |
+| Move To     | Scripted |    20.0% |      -281.0 |       186.0 |
+| Pick Place  | Random   |     0.0% |      -142.7 |       200.0 |
+| Pick Place  | Scripted |     0.0% |       -64.6 |       200.0 |
+| Place       | Random   |     0.0% |    -10297.7 |       200.0 |
+| Place       | Scripted |     0.0% |    -11733.5 |       200.0 |
+
+Scripted MoveTo achieves 20% success (simple P-control can reach objects).
+PickPlace scripted gets 2.2× better returns than random but 0% full success —
+the multi-phase task is hard even for a privileged controller within 200 steps.
+
+### Design decisions
+```
+1. 200-step truncation (not infinite):
+   200 steps × 20Hz = 10s sim time. Without truncation, random eval
+   runs forever. Truncation is in the base class so all envs get it.
+
+2. Post-grasp init for PlaceEnv:
+   Object spawns in gripper, avoiding the grasp problem entirely.
+   Tests place skill in isolation — clean primitive decomposition.
+
+3. Scripted baselines use privileged info:
+   Fair comparison: scripted knows exact poses (from info dict),
+   RL agent learns from obs only. This sets an upper bound.
+
+4. 25 episodes (not 100):
+   MuJoCo stepping at 200 steps × 25 substeps = 5000 physics steps/ep.
+   25 episodes × 6 pairs ≈ 750K physics steps — runs in ~8s.
+```
+
+### Files added/modified
+```
+NEW:  envs/move_to.py
+NEW:  envs/place.py
+NEW:  policies/scripted.py
+NEW:  evaluation/compare_primitives.py
+NEW:  evaluation/results/primitive_comparison.json
+NEW:  tests/test_v104.py
+MOD:  envs/__init__.py (added MoveToEnv, PlaceEnv exports)
+MOD:  envs/multi_object_env.py (added max_episode_steps truncation)
+MOD:  policies/__init__.py (added ScriptedPickPlace, ScriptedMoveTo)
+MOD:  ROADMAP.md
 MOD:  DEVELOPMENT_LOG.md
 ```
 

@@ -1,0 +1,44 @@
+{
+  "move_to_random": {
+    "mean_return": -722.3099388691371,
+    "std_return": 106.81587937111979,
+    "success_rate": 0.0,
+    "mean_length": 200.0
+  },
+  "move_to_scripted": {
+    "mean_return": -281.00819890570574,
+    "std_return": 143.2773687932297,
+    "success_rate": 0.2,
+    "mean_length": 185.96
+  },
+  "pick_place_random": {
+    "mean_return": -142.74037744975215,
+    "std_return": 21.870524732744887,
+    "success_rate": 0.0,
+    "mean_length": 200.0
+  },
+  "pick_place_scripted": {
+    "mean_return": -64.6405884054754,
+    "std_return": 33.45021108125453,
+    "success_rate": 0.0,
+    "mean_length": 200.0
+  },
+  "place_random": {
+    "mean_return": -10297.684837195797,
+    "std_return": 6565.5509241327245,
+    "success_rate": 0.0,
+    "mean_length": 200.0
+  },
+  "place_scripted": {
+    "mean_return": -11733.497681602112,
+    "std_return": 6154.370786431473,
+    "success_rate": 0.0,
+    "mean_length": 200.0
+  },
+  "_meta": {
+    "n_episodes": 25,
+    "seed": 0,
+    "elapsed_sec": 8.4,
+    "timestamp": "2026-02-22T14:24:36"
+  }
+}
