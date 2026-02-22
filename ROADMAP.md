@@ -152,12 +152,12 @@
 ### Tasks
 
 ```
-[ ] Pipeline: instruction → VLM → sub-tasks → grounding → RL policies → MuJoCo
-[ ] Sort environment (L4): multi-object bin assignment
-[ ] Complex language environment (L5): multi-step instructions
-[ ] End-to-end RL baseline (single policy, no hierarchy)
-[ ] Evaluate L1–L5 success rates with full pipeline
-[ ] git tag v1.0.7
+[x] Pipeline: instruction → VLM → sub-tasks → grounding → RL policies → MuJoCo
+[x] Sort environment (L4): multi-object bin assignment
+[x] Complex language environment (L5): multi-step instructions
+[x] End-to-end RL baseline (single policy, no hierarchy)
+[x] Evaluate L1–L5 success rates with full pipeline
+[x] git tag v1.0.7
 ```
 
 ---
@@ -222,7 +222,7 @@ Before running `git tag v1.0.x`:
 | v1.0.4 | ✅ Complete | 2026-02-22 | MoveToEnv, PlaceEnv, scripted baselines, comparison eval, 133 tests |
 | v1.0.5 | ✅ Complete | 2026-02-22 | VLM planner, MockVLM, task parser, 20+ scenarios 100% accuracy, 201 tests |
 | v1.0.6 | ✅ Complete | 2026-02-22 | SimGrounder, color/shape synonyms, 20+ queries 100% accuracy, 245 tests |
-| v1.0.7 | 🔲 Not started | — | — |
+| v1.0.7 | ✅ Complete | 2026-02-22 | SortEnv L4, ComplexLanguageEnv L5, HierarchicalExecutor pipeline, 268 tests |
 | v1.0.8 | 🔲 Not started | — | — |
 | v1.0.9 | 🔲 Not started | — | — |
 

@@ -4,7 +4,7 @@
 
 ---
 
-## Status: v1.0.6 COMPLETE — Object Grounding
+## Status: v1.0.7 COMPLETE — Full Hierarchical Pipeline
 
 ### Pre-Development Setup (Week 0)
 - [x] Install MuJoCo on Mac (via `pip install mujoco`)
@@ -90,6 +90,83 @@ NEW:  tests/conftest.py
 NEW:  tests/test_envs.py
 NEW:  notebooks/.gitkeep
 NEW:  videos/.gitkeep
+MOD:  DEVELOPMENT_LOG.md
+```
+
+---
+
+## v1.0.7 — Full Hierarchical Pipeline (2026-02-22)
+
+### What was built
+End-to-end hierarchical execution pipeline, two new task environments (L4, L5),
+and full integration of planner → grounder → scripted policies → MuJoCo.
+
+**HierarchicalExecutor (`evaluation/pipeline.py`):**
+- Takes a TaskPlan + env, executes each sub-task sequentially
+- Per-subtask: ground target → select policy → run episodes → record result
+- Supports move_to, pick, and place primitives
+- StepResult/ExecutionResult dataclasses with success, reward, step counts
+- Handles grounding failures gracefully (no crash, error in result)
+- `_build_scene_info()` extracts object specs from env for grounder
+
+**SortEnv L4 (`envs/sort.py`):**
+- N objects → N shuffled target zones on table
+- 52D obs: arm (22) + objects (7×3) + zone positions (3×3)
+- Per-object reward (+20 when in correct zone) + full-sort bonus (+100)
+- Terminates when all objects in correct zones (5 cm threshold)
+- Shuffled zone assignment ensures different ordering each episode
+
+**ComplexLanguageEnv L5 (`envs/complex_language.py`):**
+- 5 instruction templates requiring multi-step execution
+- Templates: pick-and-place, move-left, stack, move-all-center, pick-both
+- 59D obs: arm (22) + objects (7×3) + instruction encoding (16D hash)
+- Condition checking: obj_near, obj_left, obj_on, all_center
+- Instruction text in info dict for planner consumption
+- Per-condition reward (+20 met, -5 unmet) + all-conditions bonus (+100)
+
+**Test results: 268 tests pass (23 new)**
+- SortEnv: 8/8 (obs shape, action space, zones, reward, episodes)
+- ComplexLanguageEnv: 8/8 (obs, instructions, conditions, determinism)
+- HierarchicalExecutor: 6/6 (move_to, pick+place, empty plan, grounding fail)
+- EndToEnd: 1/1 (full planner → executor pipeline)
+
+### Bug fixed
+- `ObjectSpec.color` → `ObjectSpec.color_name`: The dataclass uses
+  `color_name` (str) not `color`. Fixed in both `complex_language.py`
+  and `evaluation/pipeline.py`. Root cause: field naming assumption
+  without checking the actual dataclass definition.
+
+### Design decisions
+```
+1. Sequential sub-task execution (not parallel):
+   Robot has one arm — sub-tasks are inherently sequential.
+   Failure in one doesn't abort the rest (continues for logging).
+
+2. 16D instruction encoding (hash-based placeholder):
+   Real instruction embeddings would come from sentence-transformers.
+   Hash-based encoding preserves determinism without model dependency.
+
+3. SortEnv shuffled zones (not fixed assignment):
+   Prevents memorization. Each reset produces a different object→zone
+   mapping, forcing generalisation.
+
+4. 5 condition types (not arbitrary):
+   Covers the key spatial relations: proximity, direction, stacking,
+   and global arrangement. Extensible for v1.0.8.
+
+5. Tests use actual spawned colors (not hardcoded):
+   After the ObjectSpec bug, tests query env._obj_specs[0].color_name
+   to build instructions that match the actual scene.
+```
+
+### Files added/modified
+```
+NEW:  evaluation/pipeline.py
+NEW:  envs/sort.py
+NEW:  envs/complex_language.py
+NEW:  tests/test_v107.py
+MOD:  envs/__init__.py (added SortEnv, ComplexLanguageEnv)
+MOD:  ROADMAP.md
 MOD:  DEVELOPMENT_LOG.md
 ```
 
