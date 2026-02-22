@@ -1,0 +1,227 @@
+# RoboLLM — Release Roadmap
+
+> 10 releases from scaffold to stable. One iteration at a time.
+> Hard rule: nothing ships until it has real outputs — benchmarks from
+> actual runs, not placeholder tables.
+
+---
+
+## v1.0.0 — Scaffold + MuJoCo Environment
+
+**Goal:** Project skeleton with working MuJoCo tabletop env and 7-DOF arm.
+
+### Deliverables
+- Full project directory structure per README specification
+- MuJoCo MJCF scene: Franka-inspired 7-DOF arm, 60×60 cm tabletop, block, cameras
+- Gymnasium-compatible `TabletopEnv` with delta-EE control (Jacobian pseudoinverse)
+- Observation: joint state + EE pose + object pose (29D)
+- Action: delta EE (3D) + gripper (1D)
+- Headless rendering (overhead camera, 128×128 RGB)
+- Unit tests, CI, Dockerfile
+
+### Tasks
+
+```
+[x] Create project structure: pyproject.toml, Dockerfile, CI, .gitignore, LICENSE
+[x] Write MuJoCo XML: 7-DOF arm, tabletop, block, overhead+front+side cameras
+[x] Implement TabletopEnv (Gymnasium): reset, step, render, obs/action spaces
+[x] Delta-EE control via damped Jacobian pseudoinverse
+[x] Unit tests: create, reset, step, render, deterministic seed, info dict
+[x] CI green
+[x] git tag v1.0.0
+```
+
+### Definition of Done
+- ✅ `TabletopEnv` instantiates, resets, and steps without errors
+- ✅ Rendering produces valid 128×128 RGB images
+- ✅ Tests pass locally and in CI
+- ✅ Tagged `v1.0.0`
+
+---
+
+## v1.0.1 — Environment Variants + Object Spawning
+
+**Goal:** Task-specific environments with randomized multi-object spawning and shaped rewards.
+
+### Tasks
+
+```
+[ ] Randomized multi-object spawning (cubes, cylinders, spheres; 3–6 colors)
+[ ] Pick-place env (L1): approach + grasp + lift reward shaping
+[ ] Color-pick env (L2): correct color selection reward
+[ ] Stack env (L3): stable stack detection + order reward
+[ ] Manual teleop script for visual debugging
+[ ] First render screenshot/GIF committed
+[ ] git tag v1.0.1
+```
+
+---
+
+## v1.0.2 — SAC Implementation
+
+**Goal:** Clean Soft Actor-Critic from scratch, verified on sanity task.
+
+### Tasks
+
+```
+[ ] SAC agent: Actor MLP [obs→256→256→action], dual Critics
+[ ] Automatic entropy tuning (target entropy = -dim(A))
+[ ] Replay buffer: 1M transitions, batch 256
+[ ] Unit tests: buffer sampling, network forward, gradient step
+[ ] Verify SAC on a trivial continuous control task
+[ ] git tag v1.0.2
+```
+
+---
+
+## v1.0.3 — Pick Primitive Training
+
+**Goal:** Train pick policy to ≥80% success rate on L1 environment.
+
+### Tasks
+
+```
+[ ] Train pick primitive: 500K env steps, shaped reward
+[ ] Hyperparameter sweep: learning rate, entropy target, batch size
+[ ] Record first success video/GIF
+[ ] TensorBoard training curves committed
+[ ] Evaluate: 100 episodes, mean ± 95% CI
+[ ] git tag v1.0.3
+```
+
+---
+
+## v1.0.4 — Place + Move Primitives
+
+**Goal:** Complete primitive policy set with scripted baseline comparison.
+
+### Tasks
+
+```
+[ ] Train place primitive (target position reward)
+[ ] Train move_to primitive (approach without grasp)
+[ ] Scripted baseline: hard-coded sub-task sequence + PD controller
+[ ] Evaluate all 3 primitives independently (100 episodes each)
+[ ] Comparison table: RL policy vs scripted vs random
+[ ] git tag v1.0.4
+```
+
+---
+
+## v1.0.5 — VLM Planner Integration
+
+**Goal:** PaliGemma-3B sub-task decomposition with ≥80% accuracy.
+
+### Tasks
+
+```
+[ ] PaliGemma-3B (4-bit GPTQ) wrapper: load, prompt, parse output
+[ ] Prompt template: image + instruction → JSON sub-task sequence
+[ ] Task parser: validate primitives, handle malformed VLM output
+[ ] Test decomposition accuracy on 20+ scenarios
+[ ] Compare PaliGemma-3B vs Phi-3-Vision (fallback)
+[ ] git tag v1.0.5
+```
+
+---
+
+## v1.0.6 — Object Grounding
+
+**Goal:** Map VLM text descriptions to object poses in simulation.
+
+### Tasks
+
+```
+[ ] DINOv2-small feature extractor: scene crops → embeddings
+[ ] Nearest-neighbor matching: description → object pose in sim
+[ ] Grounding accuracy tests (20+ queries)
+[ ] Handle ambiguous references and synonyms
+[ ] git tag v1.0.6
+```
+
+---
+
+## v1.0.7 — Full Hierarchical Pipeline
+
+**Goal:** End-to-end instruction → execution with L1–L5 evaluation.
+
+### Tasks
+
+```
+[ ] Pipeline: instruction → VLM → sub-tasks → grounding → RL policies → MuJoCo
+[ ] Sort environment (L4): multi-object bin assignment
+[ ] Complex language environment (L5): multi-step instructions
+[ ] End-to-end RL baseline (single policy, no hierarchy)
+[ ] Evaluate L1–L5 success rates with full pipeline
+[ ] git tag v1.0.7
+```
+
+---
+
+## v1.0.8 — Benchmark Suite + Demo Videos
+
+**Goal:** Full evaluation with comparison table and demo media.
+
+### Tasks
+
+```
+[ ] 100 eval episodes per task, randomized initial placement
+[ ] Comparison table: scripted vs end-to-end RL vs RoboLLM
+[ ] Record demo videos (≥3 task types, MP4/GIF)
+[ ] Success criteria check against PROJECT_SPEC thresholds
+[ ] All benchmark CSVs + TensorBoard logs committed
+[ ] git tag v1.0.8
+```
+
+---
+
+## v1.0.9 — Polish & Ship
+
+**Goal:** README with real numbers, blog post, project page updated.
+
+### Tasks
+
+```
+[ ] Replace all "—" placeholder values in README with real results
+[ ] Write blog post: hierarchical VLM+RL manipulation
+[ ] Update ajliouat.github.io/projects/robollm.html with real benchmarks
+[ ] Projects index status: "Planned" → "Complete"
+[ ] Final CI check — all green
+[ ] git tag v1.0.9
+```
+
+---
+
+## Release Checklist (use for every tag)
+
+Before running `git tag v1.0.x`:
+
+```
+[ ] All new tests pass locally
+[ ] No placeholder values in committed results
+[ ] DEVELOPMENT_LOG.md updated with this iteration's learnings
+[ ] CI passes on current main
+[ ] git tag -a v1.0.x -m "description"
+[ ] git push origin v1.0.x
+```
+
+---
+
+## Progress Tracker
+
+| Release | Status | Tag Date | Key Result |
+|---------|--------|----------|------------|
+| v1.0.0 | ✅ Complete | 2026-02-22 | Scaffold, MuJoCo env, 7-DOF arm, Gymnasium wrapper |
+| v1.0.1 | 🔲 Not started | — | — |
+| v1.0.2 | 🔲 Not started | — | — |
+| v1.0.3 | 🔲 Not started | — | — |
+| v1.0.4 | 🔲 Not started | — | — |
+| v1.0.5 | 🔲 Not started | — | — |
+| v1.0.6 | 🔲 Not started | — | — |
+| v1.0.7 | 🔲 Not started | — | — |
+| v1.0.8 | 🔲 Not started | — | — |
+| v1.0.9 | 🔲 Not started | — | — |
+
+---
+
+*One release at a time. No skipping ahead.*

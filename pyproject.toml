@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robollm"
+version = "1.0.0"
+description = "Language-grounded robotic manipulation with VLM planning and RL control"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Abdeljalil Jliouat", email = "contact@ajliouat.com"},
+]
+keywords = ["robotics", "mujoco", "reinforcement-learning", "vlm", "manipulation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "mujoco>=3.0",
+    "gymnasium>=0.29",
+    "numpy>=1.24",
+    "torch>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-timeout>=2.0",
+]
+vlm = [
+    "transformers>=4.36",
+    "accelerate>=0.25",
+    "auto-gptq>=0.6",
+    "pillow>=10.0",
+]
+all = ["robollm[dev,vlm]"]
+
+[tool.setuptools.packages.find]
+include = ["envs*", "planner*", "policies*", "training*", "evaluation*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-v", "--tb=short"]

@@ -1,0 +1,192 @@
+<!--
+  RoboLLM — Tabletop manipulation scene
+  
+  Scene: 60×60 cm tabletop with 7-DOF Franka-inspired arm and a red block.
+  Arm base mounted at back edge of table. Overhead + front + side cameras.
+  
+  Joint ordering (qpos):
+    [0:7]   — arm joints (j1..j7, all hinge)
+    [7:9]   — gripper fingers (finger_l, finger_r, both slide)
+    [9:16]  — block free joint (3 pos + 4 quat)
+  
+  Actuators: position-controlled (PD) for all 9 DOFs.
+-->
+<mujoco model="robollm_tabletop">
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>
+
+  <default>
+    <default class="arm">
+      <joint damping="10" armature="0.1"/>
+      <geom type="capsule" condim="4" friction="1 0.005 0.0001" rgba="0.92 0.92 0.92 1"/>
+    </default>
+    <default class="finger">
+      <joint damping="5" armature="0.01"/>
+      <geom type="box" condim="4" friction="1 0.5 0.01" rgba="0.3 0.3 0.3 1"/>
+    </default>
+    <default class="object">
+      <geom condim="4" friction="1 0.5 0.01"
+            solimp="0.95 0.95 0.01" solref="0.01 1"/>
+    </default>
+  </default>
+
+  <asset>
+    <texture name="grid" type="2d" builtin="checker"
+             rgb1="0.85 0.85 0.85" rgb2="0.92 0.92 0.92"
+             width="512" height="512"/>
+    <material name="grid" texture="grid" texrepeat="8 8" reflectance="0.05"/>
+    <material name="table_mat" rgba="0.55 0.45 0.35 1" specular="0.1"/>
+  </asset>
+
+  <worldbody>
+    <!-- Lighting -->
+    <light pos="0.5 0 1.5" dir="0 0 -1" directional="true" diffuse="0.8 0.8 0.8"/>
+    <light pos="0.8 0.5 1.0" diffuse="0.3 0.3 0.3"/>
+
+    <!-- Floor -->
+    <geom name="floor" type="plane" size="2 2 0.01" material="grid"/>
+
+    <!-- Table: 60×60 cm, 40 cm tall -->
+    <body name="table" pos="0.5 0 0.4">
+      <geom name="table_top" type="box" size="0.3 0.3 0.015"
+            material="table_mat" mass="20"/>
+      <geom name="leg_1" type="cylinder" size="0.015 0.185"
+            pos="-0.27 -0.27 -0.2" rgba="0.4 0.35 0.3 1"/>
+      <geom name="leg_2" type="cylinder" size="0.015 0.185"
+            pos=" 0.27 -0.27 -0.2" rgba="0.4 0.35 0.3 1"/>
+      <geom name="leg_3" type="cylinder" size="0.015 0.185"
+            pos="-0.27  0.27 -0.2" rgba="0.4 0.35 0.3 1"/>
+      <geom name="leg_4" type="cylinder" size="0.015 0.185"
+            pos=" 0.27  0.27 -0.2" rgba="0.4 0.35 0.3 1"/>
+    </body>
+
+    <!-- ═══════════════════════════════════════════════════════
+         7-DOF Arm (Franka Panda-inspired)
+         Mounted at back edge of table.
+         Joint axes alternate Z/Y for anthropomorphic kinematics.
+         Link lengths: upper arm 0.30m, forearm 0.28m, wrist 0.09m.
+         Total reach ≈ 0.85m.
+         ═══════════════════════════════════════════════════════ -->
+    <body name="arm_base" pos="0.5 -0.28 0.415">
+      <geom name="base_mount" type="cylinder" size="0.05 0.015"
+            rgba="0.2 0.2 0.2 1" mass="5"/>
+
+      <body name="link1" pos="0 0 0.03" childclass="arm">
+        <joint name="j1" type="hinge" axis="0 0 1" range="-2.9 2.9"/>
+        <geom fromto="0 0 0 0 0 0.12" size="0.04"/>
+
+        <body name="link2" pos="0 0 0.12">
+          <joint name="j2" type="hinge" axis="0 1 0" range="-1.8 1.8"/>
+          <geom fromto="0 0 0 0 0 0.30" size="0.035"/>
+
+          <body name="link3" pos="0 0 0.30">
+            <joint name="j3" type="hinge" axis="0 0 1" range="-2.9 2.9"/>
+            <geom fromto="0 0 0 0 0 0.06" size="0.03"/>
+
+            <body name="link4" pos="0 0 0.06">
+              <joint name="j4" type="hinge" axis="0 1 0" range="-3.1 -0.07"/>
+              <geom fromto="0 0 0 0 0 0.28" size="0.03"
+                    rgba="0.85 0.85 0.85 1"/>
+
+              <body name="link5" pos="0 0 0.28">
+                <joint name="j5" type="hinge" axis="0 0 1" range="-2.9 2.9"/>
+                <geom fromto="0 0 0 0 0 0.06" size="0.025"
+                      rgba="0.85 0.85 0.85 1"/>
+
+                <body name="link6" pos="0 0 0.06">
+                  <joint name="j6" type="hinge" axis="0 1 0"
+                         range="-0.02 3.75"/>
+                  <geom fromto="0 0 0 0 0 0.09" size="0.02"
+                        rgba="0.85 0.85 0.85 1"/>
+
+                  <body name="link7" pos="0 0 0.09">
+                    <joint name="j7" type="hinge" axis="0 0 1"
+                           range="-2.9 2.9"/>
+                    <geom type="cylinder" size="0.025 0.008"
+                          rgba="0.3 0.3 0.3 1"/>
+
+                    <!-- Gripper -->
+                    <body name="gripper_base" pos="0 0 0.015">
+                      <geom name="gripper_mount" type="box"
+                            size="0.024 0.017 0.008"
+                            rgba="0.25 0.25 0.25 1" mass="0.3"/>
+                      <!-- End-effector reference point -->
+                      <site name="ee_site" pos="0 0 0.04"
+                            size="0.005" rgba="1 0 0 0.5"/>
+
+                      <!-- Left finger -->
+                      <body name="finger_l" pos="0 -0.012 0.016"
+                            childclass="finger">
+                        <joint name="finger_l" type="slide"
+                               axis="0 -1 0" range="0 0.04"/>
+                        <geom name="finger_l_geom"
+                              size="0.007 0.004 0.02"/>
+                      </body>
+
+                      <!-- Right finger -->
+                      <body name="finger_r" pos="0 0.012 0.016"
+                            childclass="finger">
+                        <joint name="finger_r" type="slide"
+                               axis="0 1 0" range="0 0.04"/>
+                        <geom name="finger_r_geom"
+                              size="0.007 0.004 0.02"/>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- ═══════════════════════════════════════════════════════
+         Objects
+         ═══════════════════════════════════════════════════════ -->
+    <!-- Red block: 4 cm cube, placed on table surface -->
+    <body name="block_red" pos="0.5 0.1 0.435">
+      <joint name="block_red_free" type="free"/>
+      <geom name="block_red_geom" type="box" size="0.02 0.02 0.02"
+            rgba="0.85 0.15 0.15 1" mass="0.05" class="object"/>
+    </body>
+
+    <!-- ═══════════════════════════════════════════════════════
+         Cameras
+         ═══════════════════════════════════════════════════════ -->
+    <!-- Overhead: looking straight down at table centre -->
+    <camera name="overhead" pos="0.5 0 1.2"
+            xyaxes="1 0 0 0 1 0" fovy="60"/>
+    <!-- Front: looking at table from the front -->
+    <camera name="front" pos="0.5 0.9 0.7"
+            xyaxes="-1 0 0 0 0.45 1" fovy="50"/>
+    <!-- Side: looking from the right -->
+    <camera name="side" pos="1.2 0 0.7"
+            xyaxes="0 1 0 -0.45 0 1" fovy="50"/>
+  </worldbody>
+
+  <!-- ═════════════════════════════════════════════════════════
+       Actuators — position-controlled PD for each joint
+       ═════════════════════════════════════════════════════════ -->
+  <actuator>
+    <position name="act_j1" joint="j1" kp="300" ctrlrange="-2.9 2.9"/>
+    <position name="act_j2" joint="j2" kp="300" ctrlrange="-1.8 1.8"/>
+    <position name="act_j3" joint="j3" kp="200" ctrlrange="-2.9 2.9"/>
+    <position name="act_j4" joint="j4" kp="200" ctrlrange="-3.1 -0.07"/>
+    <position name="act_j5" joint="j5" kp="100" ctrlrange="-2.9 2.9"/>
+    <position name="act_j6" joint="j6" kp="100" ctrlrange="-0.02 3.75"/>
+    <position name="act_j7" joint="j7" kp="50"  ctrlrange="-2.9 2.9"/>
+    <position name="act_finger_l" joint="finger_l" kp="50"
+              ctrlrange="0 0.04"/>
+    <position name="act_finger_r" joint="finger_r" kp="50"
+              ctrlrange="0 0.04"/>
+  </actuator>
+
+  <!-- Home configuration: arm in L-pose above table, fingers half open -->
+  <keyframe>
+    <key name="home"
+         qpos="0 -0.785 0 -2.356 0 1.571 0.785
+               0.02 0.02
+               0.5 0.1 0.435 1 0 0 0"/>
+  </keyframe>
+</mujoco>
