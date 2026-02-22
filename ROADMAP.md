@@ -169,12 +169,12 @@
 ### Tasks
 
 ```
-[ ] 100 eval episodes per task, randomized initial placement
-[ ] Comparison table: scripted vs end-to-end RL vs RoboLLM
-[ ] Record demo videos (≥3 task types, MP4/GIF)
-[ ] Success criteria check against PROJECT_SPEC thresholds
-[ ] All benchmark CSVs + TensorBoard logs committed
-[ ] git tag v1.0.8
+[x] 100 eval episodes per task, randomized initial placement
+[x] Comparison table: scripted vs end-to-end RL vs RoboLLM
+[x] Record demo videos (≥3 task types, MP4/GIF)
+[x] Success criteria check against PROJECT_SPEC thresholds
+[x] All benchmark CSVs + TensorBoard logs committed
+[x] git tag v1.0.8
 ```
 
 ---
@@ -223,7 +223,7 @@ Before running `git tag v1.0.x`:
 | v1.0.5 | ✅ Complete | 2026-02-22 | VLM planner, MockVLM, task parser, 20+ scenarios 100% accuracy, 201 tests |
 | v1.0.6 | ✅ Complete | 2026-02-22 | SimGrounder, color/shape synonyms, 20+ queries 100% accuracy, 245 tests |
 | v1.0.7 | ✅ Complete | 2026-02-22 | SortEnv L4, ComplexLanguageEnv L5, HierarchicalExecutor pipeline, 268 tests |
-| v1.0.8 | 🔲 Not started | — | — |
+| v1.0.8 | ✅ Complete | 2026-02-22 | Benchmark runner, 800 episodes, demo GIFs, threshold checks, 288 tests |
 | v1.0.9 | 🔲 Not started | — | — |
 
 ---

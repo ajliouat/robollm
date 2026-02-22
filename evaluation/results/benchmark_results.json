@@ -1,0 +1,103 @@
+{
+  "timestamp": "2026-02-22 14:48:51",
+  "total_episodes": 800,
+  "total_wall_time_s": 56.68,
+  "results": [
+    {
+      "env_name": "L1-PickPlace",
+      "policy_name": "random",
+      "n_episodes": 100,
+      "success_rate": 0.0,
+      "ci95": 0.018497403738000955,
+      "mean_return": -142.36672277292573,
+      "std_return": 20.839272621356937,
+      "mean_length": 200.0,
+      "std_length": 0.0,
+      "wall_time_s": 5.590389013290405
+    },
+    {
+      "env_name": "L1-PickPlace",
+      "policy_name": "scripted",
+      "n_episodes": 100,
+      "success_rate": 0.0,
+      "ci95": 0.018497403738000955,
+      "mean_return": -53.16738563709189,
+      "std_return": 25.212206894865886,
+      "mean_length": 200.0,
+      "std_length": 0.0,
+      "wall_time_s": 7.024049997329712
+    },
+    {
+      "env_name": "MoveTo",
+      "policy_name": "random",
+      "n_episodes": 100,
+      "success_rate": 0.0,
+      "ci95": 0.018497403738000955,
+      "mean_return": -715.7626155395003,
+      "std_return": 110.64734016430351,
+      "mean_length": 200.0,
+      "std_length": 0.0,
+      "wall_time_s": 5.408936977386475
+    },
+    {
+      "env_name": "MoveTo",
+      "policy_name": "scripted",
+      "n_episodes": 100,
+      "success_rate": 0.2,
+      "ci95": 0.07773251968370179,
+      "mean_return": -260.32791511425836,
+      "std_return": 126.72408939911271,
+      "mean_length": 187.58,
+      "std_length": 25.96389030942782,
+      "wall_time_s": 6.130801200866699
+    },
+    {
+      "env_name": "L2-ColorPick",
+      "policy_name": "random",
+      "n_episodes": 100,
+      "success_rate": 0.0,
+      "ci95": 0.018497403738000955,
+      "mean_return": -142.56879496321778,
+      "std_return": 22.036065375481407,
+      "mean_length": 200.0,
+      "std_length": 0.0,
+      "wall_time_s": 8.184940099716187
+    },
+    {
+      "env_name": "L3-Stack",
+      "policy_name": "random",
+      "n_episodes": 100,
+      "success_rate": 0.0,
+      "ci95": 0.018497403738000955,
+      "mean_return": -138.02465060060365,
+      "std_return": 23.500707193921176,
+      "mean_length": 200.0,
+      "std_length": 0.0,
+      "wall_time_s": 8.216241836547852
+    },
+    {
+      "env_name": "L4-Sort",
+      "policy_name": "random",
+      "n_episodes": 100,
+      "success_rate": 0.0,
+      "ci95": 0.018497403738000955,
+      "mean_return": -706.4656366439507,
+      "std_return": 171.81398072813423,
+      "mean_length": 200.0,
+      "std_length": 0.0,
+      "wall_time_s": 8.281661033630371
+    },
+    {
+      "env_name": "L5-Language",
+      "policy_name": "random",
+      "n_episodes": 100,
+      "success_rate": 0.04,
+      "ci95": 0.04135456088711286,
+      "mean_return": -955.2,
+      "std_return": 219.47428095337278,
+      "mean_length": 192.04,
+      "std_length": 38.995876705108195,
+      "wall_time_s": 7.8420350551605225
+    }
+  ]
+}

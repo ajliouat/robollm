@@ -4,7 +4,7 @@
 
 ---
 
-## Status: v1.0.7 COMPLETE — Full Hierarchical Pipeline
+## Status: v1.0.8 COMPLETE — Benchmark Suite + Demo Videos
 
 ### Pre-Development Setup (Week 0)
 - [x] Install MuJoCo on Mac (via `pip install mujoco`)
@@ -90,6 +90,66 @@ NEW:  tests/conftest.py
 NEW:  tests/test_envs.py
 NEW:  notebooks/.gitkeep
 NEW:  videos/.gitkeep
+MOD:  DEVELOPMENT_LOG.md
+```
+
+---
+
+## v1.0.8 — Benchmark Suite + Demo Videos (2026-02-22)
+
+### What was built
+Full benchmark evaluation suite and video recording pipeline.
+
+**Benchmark runner (`evaluation/benchmark.py`):**
+- `evaluate_policy()`: generic evaluator for any (env, policy) pair
+- `run_full_benchmark()`: 100 episodes × 8 env/policy configs = 800 total
+- Wilson score 95% CI for binomial success rate
+- Auto-export: JSON + CSV to `evaluation/results/`
+- `check_thresholds()`: validates against PROJECT_SPEC targets
+- CLI entry point with --episodes, --seed, --output args
+
+**Video recorder (`evaluation/record_video.py`):**
+- `record_episode()`: captures RGB frames from MuJoCo renderer
+- `save_gif()`: Pillow-based animated GIF export (no ffmpeg needed)
+- `save_frames_as_png()`: fallback individual frame export
+- `record_demos()`: records 3 task types (PickPlace, MoveTo, Sort)
+
+**Benchmark results (100 episodes per pair, seed=42):**
+
+| Environment    | Policy   | Success Rate | Mean Return | Mean Length |
+|---------------|----------|-------------|-------------|-------------|
+| L1-PickPlace  | random   | 0.0% ± 1.8% | -142.4      | 200.0       |
+| L1-PickPlace  | scripted | 0.0% ± 1.8% | -53.2       | 200.0       |
+| MoveTo        | random   | 0.0% ± 1.8% | -715.8      | 200.0       |
+| MoveTo        | scripted | 20.0% ± 7.8% | -260.3     | 187.6       |
+| L2-ColorPick  | random   | 0.0% ± 1.8% | -142.6      | 200.0       |
+| L3-Stack      | random   | 0.0% ± 1.8% | -138.0      | 200.0       |
+| L4-Sort       | random   | 0.0% ± 1.8% | -706.5      | 200.0       |
+| L5-Language   | random   | 4.0% ± 4.1% | -955.2      | 192.0       |
+
+**Demo GIFs recorded:**
+- `videos/demo_pick_place.gif` — L1 PickPlace, scripted, 201 frames
+- `videos/demo_move_to.gif` — MoveTo, scripted, 125 frames (success)
+- `videos/demo_sort_random.gif` — L4 Sort, random baseline, 201 frames
+
+**Key observations:**
+- Scripted MoveTo: 20% SR with P-controller. Simple approach tasks solvable.
+- L1 scripted: 0% SR in 200 steps. The 8-phase sequence is tight. RL training
+  (v1.0.3) showed 6.7% after 130K steps — needs more steps or curriculum.
+- L5 random: 4% SR by chance (some "move left" conditions met randomly).
+- Scripted controller gets 2.6× better returns than random on L1 despite 0% SR.
+
+### Files added/modified
+```
+NEW:  evaluation/benchmark.py
+NEW:  evaluation/record_video.py
+NEW:  evaluation/results/benchmark_results.json
+NEW:  evaluation/results/benchmark_results.csv
+NEW:  videos/demo_pick_place.gif
+NEW:  videos/demo_move_to.gif
+NEW:  videos/demo_sort_random.gif
+NEW:  tests/test_v108.py
+MOD:  ROADMAP.md
 MOD:  DEVELOPMENT_LOG.md
 ```
 
