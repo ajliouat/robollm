@@ -4,7 +4,7 @@
 
 ---
 
-## Status: v1.0.5 COMPLETE — VLM Planner Integration
+## Status: v1.0.6 COMPLETE — Object Grounding
 
 ### Pre-Development Setup (Week 0)
 - [x] Install MuJoCo on Mac (via `pip install mujoco`)
@@ -90,6 +90,40 @@ NEW:  tests/conftest.py
 NEW:  tests/test_envs.py
 NEW:  notebooks/.gitkeep
 NEW:  videos/.gitkeep
+MOD:  DEVELOPMENT_LOG.md
+```
+
+---
+
+## v1.0.6 — Object Grounding (2026-02-22)
+
+### What was built
+Object grounding system that maps text descriptions to sim object poses.
+
+**SimGrounder (`planner/grounder.py`):**
+- Score-based matching: color match (+1.0), shape match (+0.5), name match (+0.2)
+- Color synonyms: 15+ aliases (crimson→red, azure→blue, jade→green, etc.)
+- Shape synonyms: block/cube/brick→box, ball/orb/globe→sphere, tube/rod→cylinder
+- Supports 3 scene info formats: objects list, object_names dict, obj_specs
+- Returns GroundingResult with matched object, all candidates sorted by score
+
+**VisualGrounder (optional):**
+- DINOv2-small backbone (lazy-loaded, CPU or GPU)
+- Image crop → 384D embedding → nearest-neighbor match
+- Falls back to SimGrounder when no image provided
+
+**Grounding accuracy: 20/20 queries on 3-object scene**
+- Canonical names: "red block", "blue cylinder", "green sphere"
+- Synonyms: "crimson cube", "azure tube", "emerald ball"
+- Partial: "the block" (shape-only), "red" (color-only)
+- Verbose: "red box on the table", "big blue cylinder"
+
+### Files added/modified
+```
+NEW:  planner/grounder.py
+NEW:  tests/test_v106.py
+MOD:  planner/__init__.py
+MOD:  ROADMAP.md
 MOD:  DEVELOPMENT_LOG.md
 ```
 

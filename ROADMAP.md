@@ -134,11 +134,13 @@
 ### Tasks
 
 ```
-[ ] DINOv2-small feature extractor: scene crops → embeddings
-[ ] Nearest-neighbor matching: description → object pose in sim
-[ ] Grounding accuracy tests (20+ queries)
-[ ] Handle ambiguous references and synonyms
-[ ] git tag v1.0.6
+[x] SimGrounder: privileged sim info → string matching with synonyms
+[x] Color synonyms: 15+ aliases → 6 canonical colors
+[x] Shape synonyms: block/cube/brick → box, ball/orb → sphere, etc.
+[x] VisualGrounder: DINOv2-small feature extractor (optional backend)
+[x] Grounding accuracy tests (20+ queries: 100% on sim grounder)
+[x] Handle ambiguous references and synonyms
+[x] git tag v1.0.6
 ```
 
 ---
@@ -219,7 +221,7 @@ Before running `git tag v1.0.x`:
 | v1.0.3 | ✅ Complete | 2026-02-22 | Pick training script, 130K training run, eval framework, 106 tests |
 | v1.0.4 | ✅ Complete | 2026-02-22 | MoveToEnv, PlaceEnv, scripted baselines, comparison eval, 133 tests |
 | v1.0.5 | ✅ Complete | 2026-02-22 | VLM planner, MockVLM, task parser, 20+ scenarios 100% accuracy, 201 tests |
-| v1.0.6 | 🔲 Not started | — | — |
+| v1.0.6 | ✅ Complete | 2026-02-22 | SimGrounder, color/shape synonyms, 20+ queries 100% accuracy, 245 tests |
 | v1.0.7 | 🔲 Not started | — | — |
 | v1.0.8 | 🔲 Not started | — | — |
 | v1.0.9 | 🔲 Not started | — | — |
