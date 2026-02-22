@@ -4,7 +4,7 @@
 
 ---
 
-## Status: v1.0.0 COMPLETE — Scaffold + MuJoCo Environment
+## Status: v1.0.1 COMPLETE — Environment Variants + Object Spawning
 
 ### Pre-Development Setup (Week 0)
 - [x] Install MuJoCo on Mac (via `pip install mujoco`)
@@ -90,6 +90,86 @@ NEW:  tests/conftest.py
 NEW:  tests/test_envs.py
 NEW:  notebooks/.gitkeep
 NEW:  videos/.gitkeep
+MOD:  DEVELOPMENT_LOG.md
+```
+
+---
+
+## v1.0.1 — Environment Variants + Object Spawning (2026-02-22)
+
+### What was built
+Dynamic multi-object spawning system and three task-specific environments
+with shaped rewards for hierarchical skill learning.
+
+**Object spawner (`envs/object_spawner.py`):**
+- 3 shapes (box, cylinder, sphere) × 6 colours (red, green, blue, yellow, orange, purple)
+- Non-overlapping position sampling with 6 cm minimum spacing
+- XML injection: reads base MJCF, removes hardcoded block, injects N free-joint bodies
+- Keyframe qpos auto-generated to include all object initial states
+- Deterministic with seeded numpy Generator
+
+**Multi-object base env (`envs/multi_object_env.py`):**
+- Extends Gymnasium Env (not TabletopEnv) — clean reimplementation with dynamic model loading
+- Scene rebuilt on every reset (new random objects each episode)
+- Variable obs dim: 22 + 7 × n_objects (arm state + EE pose + per-object pose)
+- Same delta-EE Jacobian pseudoinverse control as v1.0.0
+- Convenience: `object_pos(i)`, `object_color(i)`, `object_shape(i)`
+
+**Pick-Place env L1 (`envs/pick_place.py`):**
+- 1 object, randomized goal position on table
+- 4-phase shaped reward: approach → grasp → lift → place
+- Obs augmented with goal position (+3D → 32D total)
+- Terminates on successful placement (obj within 4 cm of goal, after lift)
+
+**Color-Pick env L2 (`envs/color_pick.py`):**
+- N objects with unique colours, random target colour per episode
+- Obs augmented with one-hot colour target (+6D → 49D for n=3)
+- Correct-grasp bonus (+10), wrong-grasp penalty (−5), lift+success bonus (+65)
+- Terminates when correct object is lifted
+
+**Stack env L3 (`envs/stack.py`):**
+- N objects, random stack order, random stack target position
+- Obs augmented with stack pos, order, progress (+3+n+1 → 50D for n=3)
+- Contiguous stack detection: checks XY alignment + Z height per level
+- Rewards: per-object stack bonus (+20), full-stack bonus (+100)
+- Terminates when all objects correctly stacked
+
+### Design decisions
+```
+1. Dynamic XML injection (not multiple MJCF files):
+   Single base scene definition; objects added at runtime via
+   ElementTree manipulation. Avoids file explosion for N/shape/colour
+   combinations. Model reloaded each reset — fast enough (<5ms).
+
+2. MultiObjectEnv separate from TabletopEnv:
+   Clean break — TabletopEnv stays as the minimal 1-block test env.
+   MultiObjectEnv handles variable object count, dynamic model loading,
+   and variable-size observations.
+
+3. Shaped rewards with explicit phases:
+   Clear reward signal per sub-task (approach, grasp, lift, place).
+   Makes SAC training feasible in v1.0.3 without curriculum.
+
+4. Stack detection is contiguous-from-bottom:
+   Object at level k counts as stacked only if levels 0..k-1 are also
+   correct. Prevents credit for floating objects.
+
+5. ColorPick reset ordering fix:
+   Parent reset() calls _get_obs() which needs _target_color. Set
+   placeholder before super().reset(), then pick real target after.
+```
+
+### Files added/modified
+```
+NEW:  envs/object_spawner.py
+NEW:  envs/multi_object_env.py
+NEW:  envs/pick_place.py
+NEW:  envs/color_pick.py
+NEW:  envs/stack.py
+NEW:  tests/test_object_spawner.py
+NEW:  tests/test_task_envs.py
+MOD:  envs/__init__.py
+MOD:  ROADMAP.md
 MOD:  DEVELOPMENT_LOG.md
 ```
 

@@ -46,13 +46,13 @@
 ### Tasks
 
 ```
-[ ] Randomized multi-object spawning (cubes, cylinders, spheres; 3–6 colors)
-[ ] Pick-place env (L1): approach + grasp + lift reward shaping
-[ ] Color-pick env (L2): correct color selection reward
-[ ] Stack env (L3): stable stack detection + order reward
+[x] Randomized multi-object spawning (cubes, cylinders, spheres; 3–6 colors)
+[x] Pick-place env (L1): approach + grasp + lift reward shaping
+[x] Color-pick env (L2): correct color selection reward
+[x] Stack env (L3): stable stack detection + order reward
 [ ] Manual teleop script for visual debugging
 [ ] First render screenshot/GIF committed
-[ ] git tag v1.0.1
+[x] git tag v1.0.1
 ```
 
 ---
@@ -212,7 +212,7 @@ Before running `git tag v1.0.x`:
 | Release | Status | Tag Date | Key Result |
 |---------|--------|----------|------------|
 | v1.0.0 | ✅ Complete | 2026-02-22 | Scaffold, MuJoCo env, 7-DOF arm, Gymnasium wrapper |
-| v1.0.1 | 🔲 Not started | — | — |
+| v1.0.1 | ✅ Complete | 2026-02-22 | Multi-object spawning, PickPlace/ColorPick/Stack envs, 78 tests |
 | v1.0.2 | 🔲 Not started | — | — |
 | v1.0.3 | 🔲 Not started | — | — |
 | v1.0.4 | 🔲 Not started | — | — |
