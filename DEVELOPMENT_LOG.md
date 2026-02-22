@@ -4,7 +4,7 @@
 
 ---
 
-## Status: v1.0.4 COMPLETE — Place + Move Primitives
+## Status: v1.0.5 COMPLETE — VLM Planner Integration
 
 ### Pre-Development Setup (Week 0)
 - [x] Install MuJoCo on Mac (via `pip install mujoco`)
@@ -90,6 +90,85 @@ NEW:  tests/conftest.py
 NEW:  tests/test_envs.py
 NEW:  notebooks/.gitkeep
 NEW:  videos/.gitkeep
+MOD:  DEVELOPMENT_LOG.md
+```
+
+---
+
+## v1.0.5 — VLM Planner Integration (2026-02-22)
+
+### What was built
+Full VLM-based task decomposition pipeline with abstract interface,
+mock backend for testing, and optional HuggingFace Transformers backend.
+
+**VLM wrapper (`planner/vlm_wrapper.py`):**
+- VLMBase: abstract base with generate() + decompose() + JSON parsing
+- MockVLM: rule-based keyword matching for testing (no GPU required)
+  - Detects pick/place/move/stack/sort via word sets
+  - Handles 6 colors, implicit pick when place detected
+  - Override decompose() to skip prompt wrapping (avoids keyword pollution)
+- TransformersVLM: HuggingFace backend for PaliGemma/Phi-3-Vision
+  - Lazy model loading, 4-bit quantization support
+  - PIL/numpy image handling, prompt processing
+
+**Prompt templates (`planner/prompt_templates.py`):**
+- System prompt defining available primitives (move_to, pick, place)
+- Object color and shape vocabulary
+- Strict output format: JSON array with primitive/target/description
+- Ordering rules: must approach before pick, pick before place
+- 20+ evaluation scenarios with expected primitive sequences
+
+**Task parser (`planner/task_parser.py`):**
+- SubTask and TaskPlan dataclasses
+- Primitive validation (move_to, pick, place only)
+- Color normalisation with aliases (crimson→red, azure→blue, etc.)
+- Ordering validation: warns on double-pick or place-without-pick
+- Handles malformed input gracefully (non-dicts, missing fields)
+
+**Planner (`planner/planner.py`):**
+- High-level orchestrator: instruction → VLM → parse → TaskPlan
+- Planning history tracking for logging/debugging
+- Clean interface: `planner.plan("pick up the red block")`
+
+**Decomposition accuracy on 20+ test scenarios:**
+- All 15 scenarios with exact primitive expectations: 100% match
+- All 20 scenarios produce valid, non-empty plans
+- MockVLM correctly handles: simple pick, pick+place, move-only,
+  stack (multi-object), sort, ambiguous instructions
+
+### Design decisions
+```
+1. Abstract VLM interface (not hardcoded PaliGemma):
+   VLMBase → MockVLM for testing, TransformersVLM for real models.
+   Clean separation lets pipeline tests run without GPU.
+
+2. MockVLM keyword matching (not LLM):
+   Deterministic, fast, no dependencies. Perfect for pipeline
+   integration tests. Accuracy measured on 20+ scenarios.
+
+3. MockVLM overrides decompose() directly:
+   The base class wraps instruction in a system prompt before
+   generate(), which would pollute keyword matching. Override
+   skips the prompt template for clean word detection.
+
+4. Task parser as separate validation layer:
+   VLM output → parse_subtasks() → TaskPlan. Handles malformed
+   JSON, unknown primitives, ordering violations. Defense in depth.
+
+5. Color aliases:
+   VLMs may output "crimson" instead of "red". Normalisation layer
+   maps 15+ aliases to the 6 canonical colors.
+```
+
+### Files added/modified
+```
+NEW:  planner/vlm_wrapper.py
+NEW:  planner/prompt_templates.py
+NEW:  planner/task_parser.py
+NEW:  planner/planner.py
+NEW:  tests/test_v105.py
+MOD:  planner/__init__.py
+MOD:  ROADMAP.md
 MOD:  DEVELOPMENT_LOG.md
 ```
 
