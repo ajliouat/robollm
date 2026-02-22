@@ -4,7 +4,7 @@
 
 ---
 
-## Status: v1.0.8 COMPLETE — Benchmark Suite + Demo Videos
+## Status: v1.0.9 COMPLETE — Polish & Ship (STABLE)
 
 ### Pre-Development Setup (Week 0)
 - [x] Install MuJoCo on Mac (via `pip install mujoco`)
@@ -91,6 +91,42 @@ NEW:  tests/test_envs.py
 NEW:  notebooks/.gitkeep
 NEW:  videos/.gitkeep
 MOD:  DEVELOPMENT_LOG.md
+```
+
+---
+
+## v1.0.9 — Polish & Ship (2026-02-22)
+
+### What was built
+Final release — README with real benchmark numbers, blog post, project page updates.
+
+**README updates:**
+- Replaced all "—" placeholder values with real benchmark results
+- Updated project structure to match actual codebase
+- Added VLM planner accuracy table (100% on 20+ scenarios)
+- Added primitive comparison table with mean returns
+- Added demo video table (3 GIFs)
+
+**Blog post:**
+- `blog/hierarchical-vlm-rl-manipulation.html`: Architecture walkthrough, design decisions,
+  honest benchmark analysis, lessons learned. Added to blog index.
+
+**Project page:**
+- `projects/robollm.html`: Updated benchmark tables with real numbers. Pipeline component
+  accuracy table added. Placeholder note removed.
+- `projects/index.html`: Status changed from "Planned" to "Complete".
+
+**Final test suite: 288 tests pass, 0 failures, 17s wall time.**
+
+### Files added/modified
+```
+MOD:  README.md (real benchmark numbers, updated project structure)
+MOD:  ROADMAP.md (all 10 releases marked complete)
+MOD:  DEVELOPMENT_LOG.md (v1.0.9 entry, final status)
+NEW:  blog/hierarchical-vlm-rl-manipulation.html (in ajliouat.github.io)
+MOD:  projects/robollm.html (in ajliouat.github.io — real benchmarks)
+MOD:  projects/index.html (in ajliouat.github.io — "Complete" status)
+MOD:  blog/index.html (in ajliouat.github.io — new post entry)
 ```
 
 ---

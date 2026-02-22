@@ -186,12 +186,12 @@
 ### Tasks
 
 ```
-[ ] Replace all "—" placeholder values in README with real results
-[ ] Write blog post: hierarchical VLM+RL manipulation
-[ ] Update ajliouat.github.io/projects/robollm.html with real benchmarks
-[ ] Projects index status: "Planned" → "Complete"
-[ ] Final CI check — all green
-[ ] git tag v1.0.9
+[x] Replace all "—" placeholder values in README with real results
+[x] Write blog post: hierarchical VLM+RL manipulation
+[x] Update ajliouat.github.io/projects/robollm.html with real benchmarks
+[x] Projects index status: "Planned" → "Complete"
+[x] Final CI check — all green
+[x] git tag v1.0.9
 ```
 
 ---
@@ -224,7 +224,7 @@ Before running `git tag v1.0.x`:
 | v1.0.6 | ✅ Complete | 2026-02-22 | SimGrounder, color/shape synonyms, 20+ queries 100% accuracy, 245 tests |
 | v1.0.7 | ✅ Complete | 2026-02-22 | SortEnv L4, ComplexLanguageEnv L5, HierarchicalExecutor pipeline, 268 tests |
 | v1.0.8 | ✅ Complete | 2026-02-22 | Benchmark runner, 800 episodes, demo GIFs, threshold checks, 288 tests |
-| v1.0.9 | 🔲 Not started | — | — |
+| v1.0.9 | ✅ Complete | 2026-02-22 | README with real numbers, blog post, project page, 288 tests |
 
 ---
 

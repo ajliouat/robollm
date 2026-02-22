@@ -59,49 +59,46 @@ robollm/
 ├── README.md
 ├── PROJECT_SPEC.md
 ├── DEVELOPMENT_LOG.md
+├── ROADMAP.md
 ├── LICENSE
 ├── pyproject.toml
 ├── Dockerfile
 ├── envs/                        # MuJoCo environments
-│   ├── tabletop.py              # Base tabletop environment
-│   ├── pick_place.py            # L1: single pick-place
-│   ├── color_pick.py            # L2: color-conditioned pick
-│   ├── stack.py                 # L3: stacking
-│   ├── sort.py                  # L4: sorting
-│   └── assets/                  # MuJoCo XML models
-│       ├── robot_arm.xml
-│       ├── table.xml
-│       └── objects.xml
+│   ├── tabletop.py              # Base tabletop environment (29D obs)
+│   ├── multi_object_env.py      # Multi-object base (dynamic spawning)
+│   ├── object_spawner.py        # MJCF injection (3 shapes × 6 colors)
+│   ├── pick_place.py            # L1: single pick-place (32D obs)
+│   ├── color_pick.py            # L2: color-conditioned pick (49D obs)
+│   ├── stack.py                 # L3: stacking (50D obs)
+│   ├── sort.py                  # L4: multi-object sorting (52D obs)
+│   ├── complex_language.py      # L5: complex instructions (59D obs)
+│   ├── move_to.py               # Approach primitive (29D obs)
+│   ├── place.py                 # Place primitive (32D obs)
+│   └── assets/
+│       └── tabletop_scene.xml   # MuJoCo scene definition
 ├── planner/                     # VLM-based task decomposition
-│   ├── vlm_planner.py           # PaliGemma / Phi-3-Vision wrapper
-│   ├── task_parser.py           # Parse VLM output → sub-task sequence
-│   └── prompts/                 # Prompt templates
-│       └── decompose.txt
-├── policies/                    # RL policy training
-│   ├── sac.py                   # SAC implementation
-│   ├── ppo.py                   # PPO implementation
-│   ├── networks.py              # Actor-Critic architectures
-│   └── replay_buffer.py
+│   ├── vlm_wrapper.py           # VLMBase / MockVLM / TransformersVLM
+│   ├── prompt_templates.py      # System prompts + eval scenarios
+│   ├── task_parser.py           # SubTask/TaskPlan + validation
+│   ├── planner.py               # High-level orchestrator
+│   └── grounder.py              # SimGrounder / VisualGrounder
+├── policies/                    # RL + scripted policies
+│   ├── sac.py                   # SAC agent (auto entropy, Polyak)
+│   ├── networks.py              # Actor-Critic MLPs
+│   └── scripted.py              # ScriptedPickPlace, ScriptedMoveTo
 ├── training/
-│   ├── train_policy.py          # Main RL training script
-│   ├── train_config.yaml        # Hyperparameters
-│   └── curriculum.py            # Task complexity curriculum
+│   ├── train.py                 # Generic training loop
+│   ├── train_pick.py            # Pick primitive training script
+│   └── replay_buffer.py         # 1M circular replay buffer
 ├── evaluation/
-│   ├── evaluate.py              # Benchmark task success rates
-│   ├── record_video.py          # Save demo videos/GIFs
-│   └── results/
-│       └── .gitkeep
-├── tests/
-│   ├── test_envs.py
-│   ├── test_planner.py
-│   └── test_policies.py
-├── notebooks/
-│   └── demo.ipynb               # Interactive demo notebook
-├── videos/                      # Demo GIFs for README
-│   └── .gitkeep
-└── .github/
-    └── workflows/
-        └── ci.yml
+│   ├── benchmark.py             # Full benchmark suite (100 ep/task)
+│   ├── pipeline.py              # HierarchicalExecutor (end-to-end)
+│   ├── compare_primitives.py    # Scripted vs random comparison
+│   ├── record_video.py          # GIF/video recorder
+│   └── results/                 # JSON/CSV benchmark outputs
+├── tests/                       # 288 tests across 8 test files
+├── videos/                      # Demo GIFs
+└── .github/workflows/ci.yml
 ```
 
 ## Hardware
@@ -120,17 +117,44 @@ robollm/
 
 ## Benchmarks
 
-_To be populated with real results. Format:_
+_100 episodes per task/policy pair, seed=42, 200-step max episodes._
 
-| Task | Scripted Baseline | LLM-Guided (ours) | Improvement |
-|------|------------------|--------------------|-------------|
-| L1 — Pick & Place | —% | —% | — |
-| L2 — Color Pick | —% | —% | — |
-| L3 — Stack | —% | —% | — |
-| L4 — Sort | —% | —% | — |
-| L5 — Language | N/A | —% | — |
+| Task | Random Baseline | Scripted Baseline | Notes |
+|------|----------------|-------------------|-------|
+| L1 — Pick & Place | 0.0% ± 1.8% | 0.0% ± 1.8% | Scripted gets 2.6× better returns |
+| L2 — Color Pick | 0.0% ± 1.8% | — | Multi-object color selection |
+| L3 — Stack | 0.0% ± 1.8% | — | Requires sequential precision |
+| L4 — Sort | 0.0% ± 1.8% | — | N objects → N zones |
+| L5 — Language | 4.0% ± 4.1% | — | Random meets some conditions by chance |
+| Move To | 0.0% ± 1.8% | 20.0% ± 7.8% | P-controller reaches targets |
 
-_Success rate = % of episodes where task completed within 200 steps. 100 eval episodes per task._
+_Success rate = % of episodes where task completed within 200 steps. 95% Wilson CI._
+
+### Primitive Comparison
+
+| Environment | Policy | Mean Return | Mean Length |
+|-------------|--------|-------------|-------------|
+| L1 PickPlace | Random | -142.4 | 200.0 |
+| L1 PickPlace | Scripted | -53.2 | 200.0 |
+| MoveTo | Random | -715.8 | 200.0 |
+| MoveTo | Scripted | -260.3 | 187.6 |
+
+### VLM Planner Accuracy
+
+| Metric | Result |
+|--------|--------|
+| Decomposition accuracy (MockVLM, 20+ scenarios) | 100% |
+| Object grounding accuracy (SimGrounder, 20+ queries) | 100% |
+| Color synonym coverage | 15+ aliases → 6 canonical |
+| Shape synonym coverage | 9 aliases → 3 canonical |
+
+### Demo Videos
+
+| Task | Policy | Frames | Success |
+|------|--------|--------|---------|
+| L1 PickPlace | Scripted | 201 | ✗ |
+| MoveTo | Scripted | 125 | ✓ |
+| L4 Sort | Random | 201 | ✗ |
 
 ## References
 
