@@ -4,7 +4,7 @@
 
 ---
 
-## Status: v1.0.1 COMPLETE — Environment Variants + Object Spawning
+## Status: v1.0.2 COMPLETE — SAC Implementation
 
 ### Pre-Development Setup (Week 0)
 - [x] Install MuJoCo on Mac (via `pip install mujoco`)
@@ -95,7 +95,72 @@ MOD:  DEVELOPMENT_LOG.md
 
 ---
 
-## v1.0.1 — Environment Variants + Object Spawning (2026-02-22)
+## v1.0.2 — SAC Implementation (2026-02-22)
+
+### What was built
+Clean from-scratch Soft Actor-Critic (Haarnoja et al. 2018) with all
+components needed for RL training on the tabletop environments.
+
+**Networks (`policies/networks.py`):**
+- Actor: obs → 256 → 256 → (mean, log_std), squashed Gaussian via tanh
+- Critic: (obs, action) → 256 → 256 → scalar Q-value
+- TwinCritic: two independent Q-networks for clipped double-Q
+
+**Replay buffer (`training/replay_buffer.py`):**
+- Fixed-size circular buffer, numpy storage, torch batch sampling
+- Capacity: 1M transitions (configurable), batch size 256
+
+**SAC agent (`policies/sac.py`):**
+- Automatic entropy tuning: target entropy = -dim(A)
+- Polyak-averaged target networks (τ=0.005)
+- Warmup: 5K random steps before learning begins
+- Save/load checkpoint round-trip (all weights, optimizers, counters)
+- Deterministic and stochastic action selection
+
+**Training loop (`training/train.py`):**
+- Generic env loop: collect, store, update, evaluate
+- Periodic evaluation with deterministic policy
+- Checkpoint saving at configurable intervals
+- Episode reward tracking + periodic print logging
+
+### Design decisions
+```
+1. Squashed Gaussian (not beta or truncated normal):
+   Standard SAC formulation — tanh squashing with log-prob correction.
+   Numerically stable with 1e-6 epsilon in log(1-tanh²+ε).
+
+2. CPU-only torch for now:
+   MuJoCo is CPU-bound anyway. GPU training scheduled for v1.0.3
+   when we start 500K-step runs.
+
+3. Lazy __init__ imports to break circular dependency:
+   policies/__init__ → policies.sac → training.replay_buffer →
+   training/__init__ → training.train → policies.sac.
+   Fix: __getattr__ lazy imports in both __init__.py files.
+
+4. SACConfig dataclass (not YAML/JSON):
+   Simple, type-safe, no file I/O needed. Config is passed in code.
+   Hyperparameter sweep will use grid over SACConfig fields.
+
+5. Separate replay buffer (not integrated in agent):
+   Clean separation; buffer can be reused for other algorithms.
+   Agent owns a buffer instance but doesn't subclass it.
+```
+
+### Files added/modified
+```
+NEW:  policies/networks.py
+NEW:  policies/sac.py
+NEW:  training/replay_buffer.py
+NEW:  training/train.py
+NEW:  tests/test_sac.py
+MOD:  policies/__init__.py
+MOD:  training/__init__.py
+MOD:  ROADMAP.md
+MOD:  DEVELOPMENT_LOG.md
+```
+
+---## v1.0.1 — Environment Variants + Object Spawning (2026-02-22)
 
 ### What was built
 Dynamic multi-object spawning system and three task-specific environments

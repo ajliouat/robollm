@@ -64,12 +64,12 @@
 ### Tasks
 
 ```
-[ ] SAC agent: Actor MLP [obs→256→256→action], dual Critics
-[ ] Automatic entropy tuning (target entropy = -dim(A))
-[ ] Replay buffer: 1M transitions, batch 256
-[ ] Unit tests: buffer sampling, network forward, gradient step
-[ ] Verify SAC on a trivial continuous control task
-[ ] git tag v1.0.2
+[x] SAC agent: Actor MLP [obs→256→256→action], dual Critics
+[x] Automatic entropy tuning (target entropy = -dim(A))
+[x] Replay buffer: 1M transitions, batch 256
+[x] Unit tests: buffer sampling, network forward, gradient step
+[x] Verify SAC on a trivial continuous control task
+[x] git tag v1.0.2
 ```
 
 ---
@@ -213,7 +213,7 @@ Before running `git tag v1.0.x`:
 |---------|--------|----------|------------|
 | v1.0.0 | ✅ Complete | 2026-02-22 | Scaffold, MuJoCo env, 7-DOF arm, Gymnasium wrapper |
 | v1.0.1 | ✅ Complete | 2026-02-22 | Multi-object spawning, PickPlace/ColorPick/Stack envs, 78 tests |
-| v1.0.2 | 🔲 Not started | — | — |
+| v1.0.2 | ✅ Complete | 2026-02-22 | SAC agent, twin critics, replay buffer, 103 tests |
 | v1.0.3 | 🔲 Not started | — | — |
 | v1.0.4 | 🔲 Not started | — | — |
 | v1.0.5 | 🔲 Not started | — | — |
