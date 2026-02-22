@@ -229,3 +229,69 @@ Before running `git tag v1.0.x`:
 ---
 
 *One release at a time. No skipping ahead.*
+
+---
+
+## Future Evolution
+
+> These iterations are aspirational — they represent natural next steps for
+> the project if development resumes. Not currently scheduled.
+
+### v1.1.0 — SAC Training to Convergence
+
+**Goal:** Train SAC policies to ≥80% success rate on L1 (pick-place) with full hyperparameter sweep.
+
+- 500K environment steps with shaped reward curriculum
+- Hyperparameter sweep: learning rate, entropy target, batch size, network width
+- TensorBoard training curves committed with real numbers
+- Success rate: 100 episodes, 95% CI, target ≥80% on L1
+
+### v1.2.0 — PPO Baseline + Policy Comparison
+
+**Goal:** Add PPO as an alternative RL algorithm, compare SAC vs PPO on all tasks.
+
+- PPO implementation with GAE (λ=0.95), clipped objective
+- Vectorized environments for parallel rollouts
+- Comparison table: SAC vs PPO vs scripted on L1–L3
+- Wall-clock training time comparison at fixed success rate
+
+### v1.3.0 — Real VLM Integration (PaliGemma-3B)
+
+**Goal:** Replace MockVLM with real PaliGemma-3B inference for task decomposition.
+
+- GPTQ 4-bit quantization for <4 GB VRAM on T4
+- Prompt engineering for structured JSON output
+- Decomposition accuracy on 50+ test scenarios
+- Latency profiling: VLM inference time per instruction
+- Graceful fallback to MockVLM when GPU unavailable
+
+### v1.4.0 — Visual Grounding with DINOv2
+
+**Goal:** Replace simulation-privileged grounding with visual feature matching.
+
+- DINOv2-small feature extraction from rendered scene images
+- Cosine similarity matching: text description → object patch features
+- Grounding accuracy comparison: SimGrounder vs VisualGrounder
+- Handle occlusion and partial visibility
+
+### v1.5.0 — Sim-to-Real Transfer Study
+
+**Goal:** Explore domain randomization and sim-to-real adaptation techniques.
+
+- Domain randomization: lighting, texture, camera pose, friction coefficients
+- DR-augmented policy training (randomize at each episode reset)
+- Compare DR-trained vs standard policy on held-out domain configurations
+- Document the sim-to-real gap (no real robot needed, just domain shift analysis)
+
+### v1.6.0 — Long-Horizon Planning with Re-planning
+
+**Goal:** Handle failures and unexpected states via online re-planning.
+
+- State monitoring: detect sub-task failure (object dropped, missed grasp)
+- Re-planning trigger: call VLM with updated scene description
+- Max re-plan budget: 3 attempts per instruction
+- Evaluate L4–L5 success rates with re-planning vs without
+
+---
+
+*v1.0.0–v1.0.9 delivered. Future iterations begin when development resumes.*
