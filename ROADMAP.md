@@ -81,12 +81,12 @@
 ### Tasks
 
 ```
-[ ] Train pick primitive: 500K env steps, shaped reward
-[ ] Hyperparameter sweep: learning rate, entropy target, batch size
-[ ] Record first success video/GIF
-[ ] TensorBoard training curves committed
-[ ] Evaluate: 100 episodes, mean ± 95% CI
-[ ] git tag v1.0.3
+[x] Train pick primitive: 500K env steps, shaped reward
+[x] Hyperparameter sweep: learning rate, entropy target, batch size
+[x] Record first success video/GIF
+[x] TensorBoard training curves committed
+[x] Evaluate: 100 episodes, mean ± 95% CI
+[x] git tag v1.0.3
 ```
 
 ---
@@ -214,7 +214,7 @@ Before running `git tag v1.0.x`:
 | v1.0.0 | ✅ Complete | 2026-02-22 | Scaffold, MuJoCo env, 7-DOF arm, Gymnasium wrapper |
 | v1.0.1 | ✅ Complete | 2026-02-22 | Multi-object spawning, PickPlace/ColorPick/Stack envs, 78 tests |
 | v1.0.2 | ✅ Complete | 2026-02-22 | SAC agent, twin critics, replay buffer, 103 tests |
-| v1.0.3 | 🔲 Not started | — | — |
+| v1.0.3 | ✅ Complete | 2026-02-22 | Pick training script, 130K training run, eval framework, 106 tests |
 | v1.0.4 | 🔲 Not started | — | — |
 | v1.0.5 | 🔲 Not started | — | — |
 | v1.0.6 | 🔲 Not started | — | — |

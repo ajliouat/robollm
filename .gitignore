@@ -36,3 +36,4 @@ checkpoints/*.pt
 # Profiling
 *.prof
 *.ncu-rep
+checkpoints/

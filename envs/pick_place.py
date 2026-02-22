@@ -63,9 +63,15 @@ class PickPlaceEnv(MultiObjectEnv):
         self._lifted = False
 
     def reset(self, *, seed: int | None = None, options: dict | None = None):
+        # _get_obs() is called by super().reset() and already appends
+        # self._goal_pos — so we initialise a placeholder before the call.
+        self._goal_pos = np.zeros(3)
+        self._grasped = False
+        self._lifted = False
+
         obs, info = super().reset(seed=seed, options=options)
 
-        # Randomize goal position on table (different from object)
+        # Now pick the real goal (distinct from object position)
         obj_pos = self.object_pos(0)
         for _ in range(50):
             gx = self.np_random.uniform(0.30, 0.70)
@@ -75,12 +81,10 @@ class PickPlaceEnv(MultiObjectEnv):
             if np.linalg.norm(goal[:2] - obj_pos[:2]) > 0.08:
                 break
         self._goal_pos = goal
-        self._grasped = False
-        self._lifted = False
 
-        # Augment obs with goal
-        obs = np.concatenate([obs, self._goal_pos])
-        info["goal_pos"] = self._goal_pos.copy()
+        # Rebuild obs/info with the real goal
+        obs = self._get_obs()
+        info = self._get_info()
         return obs, info
 
     def _get_obs(self) -> np.ndarray:

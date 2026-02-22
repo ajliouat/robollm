@@ -4,7 +4,7 @@
 
 ---
 
-## Status: v1.0.2 COMPLETE — SAC Implementation
+## Status: v1.0.3 COMPLETE — Pick Primitive Training
 
 ### Pre-Development Setup (Week 0)
 - [x] Install MuJoCo on Mac (via `pip install mujoco`)
@@ -90,6 +90,62 @@ NEW:  tests/conftest.py
 NEW:  tests/test_envs.py
 NEW:  notebooks/.gitkeep
 NEW:  videos/.gitkeep
+MOD:  DEVELOPMENT_LOG.md
+```
+
+---
+
+## v1.0.3 — Pick Primitive Training (2026-02-22)
+
+### What was built
+Training pipeline for the L1 pick-and-place task using SAC.
+
+**Training script (`training/train_pick.py`):**
+- Full training loop with SAC on PickPlaceEnv
+- Periodic evaluation (deterministic policy, configurable episodes)
+- Best-model checkpointing (saved when success rate improves)
+- JSON results export with full eval history
+- CLI interface with configurable steps, seed, eval interval
+
+**Training results (seed=42, 130K steps):**
+- Approach learning confirmed: reward −141 → −50 in 20K steps
+- Early grasp success: 6.7% at 25K steps
+- Entropy tuning converges: α 1.0 → 0.005
+- Throughput: ~170 FPS on Apple Silicon (CPU-only)
+- Full pick-place chain requires more steps or curriculum for sustained success
+
+**Bug fix in PickPlaceEnv:**
+- `reset()` was double-appending goal to obs (35D vs expected 32D)
+- Fix: set placeholder goal before `super().reset()`, then rebuild obs
+
+### Design decisions
+```
+1. 200-step episodes (not 500):
+   Balance between giving agent enough time and not wasting steps
+   on unrecoverable states. 200 at 20Hz = 10 seconds sim time.
+
+2. Separate eval env (not reusing train env):
+   Avoids state contamination. Eval uses deterministic policy
+   and fixed seed offsets for reproducibility.
+
+3. Best-model checkpointing:
+   Only saves when success rate improves. Prevents disk fill
+   from frequent saves during plateau phases.
+
+4. Realistic reporting:
+   6.7% success is honest. Full pipeline needs curriculum or
+   500K+ steps for robust multi-phase manipulation.
+```
+
+### Files added/modified
+```
+NEW:  training/train_pick.py
+NEW:  tests/test_training.py
+NEW:  evaluation/results/pick_training_results.json
+NEW:  evaluation/results/pick_training_summary.json
+NEW:  checkpoints/pick/pick_best.pt (not committed — binary)
+MOD:  envs/pick_place.py (reset bug fix)
+MOD:  ROADMAP.md
 MOD:  DEVELOPMENT_LOG.md
 ```
 

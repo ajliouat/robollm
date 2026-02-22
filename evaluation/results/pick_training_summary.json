@@ -1,0 +1,50 @@
+{
+  "task": "pick-place (L1)",
+  "algorithm": "SAC",
+  "training_runs": [
+    {
+      "seed": 0,
+      "total_steps": 50000,
+      "final_success_rate": 0.0,
+      "final_mean_reward": -55.49,
+      "best_success_rate": 0.0,
+      "reward_progression": {
+        "10k": -93.08,
+        "20k": -56.08,
+        "30k": -52.45,
+        "40k": -45.86,
+        "50k": -49.63
+      }
+    },
+    {
+      "seed": 42,
+      "total_steps": 130000,
+      "note": "interrupted at 130K/200K steps",
+      "best_success_rate": 0.067,
+      "eval_at_25k": {"success_rate": 0.067, "mean_reward": -52.97},
+      "eval_at_50k": {"success_rate": 0.0, "mean_reward": -52.48},
+      "eval_at_75k": {"success_rate": 0.0, "mean_reward": -54.17},
+      "eval_at_100k": {"success_rate": 0.0, "mean_reward": -59.85},
+      "eval_at_125k": {"success_rate": 0.0, "mean_reward": -54.97}
+    }
+  ],
+  "observations": [
+    "Approach phase converges quickly: reward improves from -141 to -50 in first 20K steps",
+    "Entropy tuning works: alpha drops from 1.0 to ~0.005-0.01",
+    "Early grasp success observed (6.7% at 25K in seed=42 run) but not sustained",
+    "Full pick-place chain (approach→grasp→lift→place) requires more steps or curriculum",
+    "Throughput: ~170 FPS on M-series Mac (CPU-only, single core)"
+  ],
+  "hyperparameters": {
+    "buffer_size": 500000,
+    "batch_size": 256,
+    "warmup_steps": 5000,
+    "actor_lr": 3e-4,
+    "critic_lr": 3e-4,
+    "alpha_lr": 3e-4,
+    "gamma": 0.99,
+    "tau": 0.005,
+    "hidden_dim": 256,
+    "max_episode_steps": 200
+  }
+}
