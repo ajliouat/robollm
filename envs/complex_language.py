@@ -103,9 +103,11 @@ class ComplexLanguageEnv(MultiObjectEnv):
         self._instruction = template["template"].format(**fmt_kwargs)
         self._conditions = list(template["conditions"])
 
-        # Simple instruction encoding (hash-based placeholder)
-        hash_val = hash(self._instruction) % (2**31)
-        rng = np.random.RandomState(hash_val)
+        # Deterministic instruction encoding (seeded from text)
+        import hashlib
+        seed_bytes = hashlib.md5(self._instruction.encode()).digest()
+        seed_int = int.from_bytes(seed_bytes[:4], 'little')
+        rng = np.random.RandomState(seed_int)
         self._instruction_encoding = rng.randn(16).astype(np.float64)
 
         obs = self._get_obs()

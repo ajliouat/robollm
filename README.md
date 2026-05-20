@@ -6,7 +6,7 @@
 ![MuJoCo](https://img.shields.io/badge/MuJoCo-3.x-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c?logo=pytorch&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-288_passed-brightgreen)
-![Version](https://img.shields.io/badge/version-1.0.9-informational)
+![Version](https://img.shields.io/badge/version-1.1.0-informational)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 > A language-driven robotic manipulation system that uses a small VLM for task
@@ -101,12 +101,16 @@ robollm/
 ├── planner/                     # VLM task decomposition
 │   ├── vlm_wrapper.py           # VLMBase / MockVLM / TransformersVLM
 │   ├── task_parser.py           # SubTask/TaskPlan validation
-│   └── grounder.py              # SimGrounder / VisualGrounder
+│   └── grounder.py              # SimGrounder (visual grounding planned)
 ├── policies/                    # RL + scripted policies
 │   ├── sac.py                   # SAC agent
 │   └── scripted.py              # Scripted baselines
 ├── training/                    # Training loops + replay buffer
+│   ├── train.py                 # Generic SAC training loop
+│   ├── train_all.py             # Unified multi-primitive trainer
+│   └── run_aws.sh               # AWS T4 training script
 ├── evaluation/                  # Benchmark suite + video recorder
+│   └── benchmark.py             # SAC checkpoint evaluation support
 └── tests/                       # 288 tests across 8 files
 ```
 
@@ -116,7 +120,6 @@ robollm/
 |-----------|-------|------|--------------|
 | VLM Planner | PaliGemma-3B | 3B | GPTQ 4-bit |
 | RL Policy | MLP Actor-Critic | ~200K | fp32 |
-| Scene Encoder | DINOv2-small | 22M | fp16 |
 
 ## References
 

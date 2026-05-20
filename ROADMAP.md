@@ -225,6 +225,7 @@ Before running `git tag v1.0.x`:
 | v1.0.7 | ✅ Complete | 2026-02-22 | SortEnv L4, ComplexLanguageEnv L5, HierarchicalExecutor pipeline, 268 tests |
 | v1.0.8 | ✅ Complete | 2026-02-22 | Benchmark runner, 800 episodes, demo GIFs, threshold checks, 288 tests |
 | v1.0.9 | ✅ Complete | 2026-02-22 | README with real numbers, blog post, project page, 288 tests |
+| v1.1.0 | ✅ Complete | 2026-05-20 | Bug fixes (grounding, benchmark reset, pipeline truncation, color aliases), training infrastructure (train_all, run_aws.sh, SAC benchmark integration), TensorBoard logging, 288 tests |
 
 ---
 
@@ -234,10 +235,10 @@ Before running `git tag v1.0.x`:
 
 ## Future Evolution
 
-> These iterations are aspirational — they represent natural next steps for
-> the project if development resumes. Not currently scheduled.
+> These iterations are not currently scheduled. The v1.1.0 release covered bug fixes and
+> training infrastructure. The natural next step is to run the training on a T4 GPU.
 
-### v1.1.0 — SAC Training to Convergence
+### v1.2.0 — SAC Training to Convergence
 
 **Goal:** Train SAC policies to ≥80% success rate on L1 (pick-place) with full hyperparameter sweep.
 
@@ -245,8 +246,9 @@ Before running `git tag v1.0.x`:
 - Hyperparameter sweep: learning rate, entropy target, batch size, network width
 - TensorBoard training curves committed with real numbers
 - Success rate: 100 episodes, 95% CI, target ≥80% on L1
+- Requires AWS g4dn.xlarge (T4) or similar GPU
 
-### v1.2.0 — PPO Baseline + Policy Comparison
+### v1.3.0 — PPO Baseline + Policy Comparison
 
 **Goal:** Add PPO as an alternative RL algorithm, compare SAC vs PPO on all tasks.
 
@@ -255,7 +257,7 @@ Before running `git tag v1.0.x`:
 - Comparison table: SAC vs PPO vs scripted on L1–L3
 - Wall-clock training time comparison at fixed success rate
 
-### v1.3.0 — Real VLM Integration (PaliGemma-3B)
+### v1.4.0 — Real VLM Integration (PaliGemma-3B)
 
 **Goal:** Replace MockVLM with real PaliGemma-3B inference for task decomposition.
 
@@ -265,7 +267,7 @@ Before running `git tag v1.0.x`:
 - Latency profiling: VLM inference time per instruction
 - Graceful fallback to MockVLM when GPU unavailable
 
-### v1.4.0 — Visual Grounding with DINOv2
+### v1.5.0 — Visual Grounding with DINOv2
 
 **Goal:** Replace simulation-privileged grounding with visual feature matching.
 
@@ -274,7 +276,7 @@ Before running `git tag v1.0.x`:
 - Grounding accuracy comparison: SimGrounder vs VisualGrounder
 - Handle occlusion and partial visibility
 
-### v1.5.0 — Sim-to-Real Transfer Study
+### v1.6.0 — Sim-to-Real Transfer Study
 
 **Goal:** Explore domain randomization and sim-to-real adaptation techniques.
 
@@ -283,7 +285,7 @@ Before running `git tag v1.0.x`:
 - Compare DR-trained vs standard policy on held-out domain configurations
 - Document the sim-to-real gap (no real robot needed, just domain shift analysis)
 
-### v1.6.0 — Long-Horizon Planning with Re-planning
+### v1.7.0 — Long-Horizon Planning with Re-planning
 
 **Goal:** Handle failures and unexpected states via online re-planning.
 
@@ -294,4 +296,4 @@ Before running `git tag v1.0.x`:
 
 ---
 
-*v1.0.0–v1.0.9 delivered. Future iterations begin when development resumes.*
+*v1.0.0–v1.1.0 delivered. Future iterations begin when development resumes.*

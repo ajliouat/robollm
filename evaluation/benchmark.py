@@ -120,6 +120,9 @@ def evaluate_policy(
         ep_return = 0.0
         ep_len = 0
 
+        if hasattr(policy_fn, "reset"):
+            policy_fn.reset()
+
         done = False
         while not done:
             if callable(policy_fn):
@@ -164,6 +167,7 @@ def run_full_benchmark(
     n_episodes: int = 100,
     seed: int = 42,
     output_dir: str | Path = "evaluation/results",
+    sac_checkpoints: dict[str, str | Path] | None = None,
 ) -> BenchmarkReport:
     """Run the complete benchmark suite across all envs and policies.
 
@@ -215,6 +219,18 @@ def run_full_benchmark(
         ],
     ))
 
+    # ── SAC-trained policies (if checkpoints provided) ────────
+    if sac_checkpoints:
+        for env_name, ckpt_path in sac_checkpoints.items():
+            if env_name == "L1-PickPlace":
+                env = PickPlaceEnv()
+                policy = load_sac_policy(ckpt_path, obs_dim=32, act_dim=4)
+                configs.append((env_name, env, [("sac", policy)]))
+            elif env_name == "MoveTo":
+                env = MoveToEnv()
+                policy = load_sac_policy(ckpt_path, obs_dim=29, act_dim=4)
+                configs.append((env_name, env, [("sac", policy)]))
+
     # L2 — ColorPick
     cp_env = ColorPickEnv()
     configs.append((
@@ -252,9 +268,6 @@ def run_full_benchmark(
     for env_name, env, policies in configs:
         envs_to_close.append(env)
         for policy_name, policy in policies:
-            # Reset scripted policies before each eval
-            if hasattr(policy, "reset"):
-                pass  # reset happens inside eval loop via act()
 
             m = evaluate_policy(
                 env=env,
@@ -300,6 +313,27 @@ def _save_results(report: BenchmarkReport, output_path: Path) -> None:
                 writer.writerow(asdict(r))
 
 
+# ── SAC policy loader ─────────────────────────────────────────────
+
+def load_sac_policy(ckpt_path: str | Path, obs_dim: int, act_dim: int,
+                    device: str = "cpu"):
+    """Load a trained SAC agent for evaluation.
+
+    Returns a callable policy_fn(obs, info) that uses deterministic actions.
+    """
+    from policies.sac import SACAgent, SACConfig
+
+    config = SACConfig(device=device)
+    agent = SACAgent(obs_dim, act_dim, config)
+    agent.load(ckpt_path)
+    agent.actor.eval()
+
+    def policy_fn(obs, info=None):
+        return agent.select_action(obs, deterministic=True)
+
+    return policy_fn
+
+
 # ── Threshold checker ─────────────────────────────────────────────
 
 PROJECT_THRESHOLDS = {
@@ -335,12 +369,23 @@ if __name__ == "__main__":
     parser.add_argument("--episodes", type=int, default=100)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output", type=str, default="evaluation/results")
+    parser.add_argument("--sac-pick", type=str, default=None,
+                        help="Path to SAC pick checkpoint")
+    parser.add_argument("--sac-move-to", type=str, default=None,
+                        help="Path to SAC move_to checkpoint")
     args = parser.parse_args()
+
+    sac_checkpoints = {}
+    if args.sac_pick:
+        sac_checkpoints["L1-PickPlace"] = args.sac_pick
+    if args.sac_move_to:
+        sac_checkpoints["MoveTo"] = args.sac_move_to
 
     report = run_full_benchmark(
         n_episodes=args.episodes,
         seed=args.seed,
         output_dir=args.output,
+        sac_checkpoints=sac_checkpoints or None,
     )
     report.print_table()
 

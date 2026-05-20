@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any
 
 import numpy as np
 
@@ -74,7 +74,7 @@ _COLOR_SYNONYMS: dict[str, set[str]] = {
     "green": {"green", "lime", "emerald", "jade"},
     "blue": {"blue", "azure", "navy", "cyan", "cobalt"},
     "yellow": {"yellow", "gold", "amber", "lemon"},
-    "orange": {"orange", "tangerine", "amber"},
+    "orange": {"orange", "tangerine"},
     "purple": {"purple", "violet", "magenta", "lavender", "plum"},
 }
 
@@ -197,7 +197,7 @@ class SimGrounder(GrounderBase):
                 objects.append(GroundedObject(
                     name=spec.name,
                     position=np.asarray(pos),
-                    color=spec.color,
+                    color=spec.color_name,
                     shape=spec.shape,
                 ))
 
@@ -228,83 +228,13 @@ class SimGrounder(GrounderBase):
         return objects
 
 
-# ── VisualGrounder (DINOv2) ───────────────────────────────────────
+# ── VisualGrounder (DINOv2) — TODO ─────────────────────────────────
 
-class VisualGrounder(GrounderBase):
-    """Ground objects using DINOv2-small visual embeddings.
+# Full visual grounding requires DINOv2 feature matching with bounding
+# box extraction. Currently falls through to SimGrounder.
+# Planned implementation:
+#   1. Extract object crops via scene coordinate projection
+#   2. Compute DINOv2 embeddings for each crop
+#   3. Match text-derived target embedding against crop embeddings
 
-    Extracts object crops from the scene image, computes DINOv2
-    embeddings, and matches against text-derived target embeddings.
-
-    Requires: pip install torch torchvision
-    """
-
-    def __init__(
-        self,
-        model_name: str = "dinov2_vits14",
-        device: str = "cpu",
-    ):
-        self._model_name = model_name
-        self._device = device
-        self._model = None
-        self._transform = None
-
-    def _load(self):
-        if self._model is not None:
-            return
-
-        try:
-            import torch
-            import torchvision.transforms as T
-        except ImportError as e:
-            raise ImportError(
-                "VisualGrounder requires: pip install torch torchvision"
-            ) from e
-
-        self._model = torch.hub.load(
-            "facebookresearch/dinov2", self._model_name,
-        )
-        self._model.eval()
-        self._model.to(self._device)
-
-        self._transform = T.Compose([
-            T.ToPILImage(),
-            T.Resize(224),
-            T.CenterCrop(224),
-            T.ToTensor(),
-            T.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225],
-            ),
-        ])
-
-    def _embed_crop(self, crop: np.ndarray) -> np.ndarray:
-        """Compute DINOv2 embedding for an image crop."""
-        import torch
-
-        self._load()
-        tensor = self._transform(crop).unsqueeze(0).to(self._device)
-        with torch.no_grad():
-            features = self._model(tensor)
-        return features.squeeze().cpu().numpy()
-
-    def ground(
-        self,
-        description: str,
-        scene_info: dict[str, Any],
-        image: np.ndarray | None = None,
-    ) -> GroundingResult:
-        """Ground using visual similarity.
-
-        Falls back to SimGrounder if no image is provided.
-        """
-        if image is None:
-            # Fallback to sim grounder
-            return SimGrounder().ground(description, scene_info, image)
-
-        self._load()
-
-        # For now, use SimGrounder with confidence boost from visual check
-        # Full visual grounding requires bounding box extraction
-        sim_result = SimGrounder().ground(description, scene_info, image)
-        return sim_result
+# from planner.grounder import SimGrounder  # <-- uncomment when implementing

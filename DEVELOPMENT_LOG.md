@@ -4,9 +4,63 @@
 
 ---
 
-## Status: v1.0.9 COMPLETE — Polish & Ship (STABLE)
+## v1.1.0 — Bug Fixes + Training Infrastructure (2026-05-20)
 
-### Pre-Development Setup (Week 0)
+### What was built
+Bug fixes for critical production issues in the hierarchical pipeline, benchmark evaluation,
+and grounding system. New unified training infrastructure for SAC on all primitives.
+
+**Critical bug fixes:**
+- `grounder.py:200`: `spec.color` → `spec.color_name` — the entire `HierarchicalExecutor`
+  production code path crashed because `ObjectSpec` has no `color` attribute. Tests passed
+  because they used a different scene info format that bypassed this code.
+- `benchmark.py`: Added `policy.reset()` before each episode — `ScriptedPickPlace` uses an
+  internal state machine (Phase enum) that was not being reset between episodes, causing
+  the policy to start in `DONE` phase for all subsequent episodes.
+- `pipeline.py`: Temporarily increased `env._max_episode_steps` to accommodate multi-subtask
+  plans — each subtask ran up to 200 steps, but the env truncated at 200 total, meaning
+  only the first subtask ever executed.
+- Color alias consolidation — `grounder.py` mapped `amber` to both `yellow` and `orange`
+  (inconsistent), while `task_parser.py` mapped it only to `yellow`. Fixed by removing
+  duplicate `amber` from orange and adding missing aliases (`ruby`, `jade`, `cobalt`,
+  `lemon`, `plum`) to `task_parser.py`.
+
+**Other fixes:**
+- `ComplexLanguageEnv`: Replaced non-deterministic `hash()` with `hashlib.md5` for
+  reproducible instruction encoding across Python processes (PYTHONHASHSEED).
+- `compare_primitives.py`: Removed invalid PlaceEnv evaluation with `ScriptedMoveTo`
+  (MoveTo targets object position, not goal position — was measuring wrong thing).
+- Removed dead `VisualGrounder` stub (~80 lines of code that fell through to SimGrounder).
+
+**Training infrastructure:**
+- `training/train_all.py`: Unified entry point for training any primitive (pick, move_to,
+  place, color_pick) via `--primitives pick,place` or `--primitives all`. Supports
+  `--device cuda`, TensorBoard logging, eval during training, best-model checkpointing.
+- `training/run_aws.sh`: One-shot script for T4: install → train → benchmark.
+- `evaluation/benchmark.py`: Added `load_sac_policy()` helper and `--sac-pick` /
+  `--sac-move-to` CLI flags for evaluating trained checkpoints.
+- TensorBoard logging added to both `training/train.py` and `training/train_pick.py`
+  (reward, alpha, FPS, loss, eval metrics).
+
+**Test results: 288 tests pass, 0 failures.**
+
+### Files added/modified
+```
+MOD:  planner/grounder.py (spec.color → spec.color_name, removed VisualGrounder)
+MOD:  planner/task_parser.py (added missing color aliases)
+MOD:  evaluation/benchmark.py (policy.reset(), load_sac_policy, SAC CLI flags)
+MOD:  evaluation/pipeline.py (multi-subtask max steps fix)
+MOD:  evaluation/compare_primitives.py (removed invalid Place eval)
+MOD:  envs/complex_language.py (deterministic instruction encoding)
+MOD:  training/train.py (TensorBoard logging, device in TrainConfig)
+MOD:  training/train_pick.py (TensorBoard logging)
+NEW:  training/train_all.py (unified primitive training)
+NEW:  training/run_aws.sh (AWS T4 training script)
+```
+
+---
+
+## Pre-Development Setup (Week 0)
 - [x] Install MuJoCo on Mac (via `pip install mujoco`)
 - [x] Verify MuJoCo rendering (headless + viewer)
 - [ ] Download and test PaliGemma-3B with 4-bit quantization locally

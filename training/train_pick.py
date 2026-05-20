@@ -21,6 +21,14 @@ from envs.pick_place import PickPlaceEnv
 from policies.sac import SACAgent, SACConfig
 
 
+try:
+    from torch.utils.tensorboard import SummaryWriter
+    _HAS_TB = True
+except ImportError:
+    _HAS_TB = False
+    SummaryWriter = None
+
+
 def make_env():
     return PickPlaceEnv()
 
@@ -86,6 +94,7 @@ def train_pick(
     ckpt_dir = Path("checkpoints/pick")
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     results_dir = Path("evaluation/results")
+    tb_writer = SummaryWriter(log_dir=str(ckpt_dir / "tensorboard")) if _HAS_TB else None
     results_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Training loop ────────────────────────────────────────────────────
@@ -137,6 +146,11 @@ def train_pick(
                 f"R(20) {avg_r:>8.2f} | α {agent.alpha:.3f} | "
                 f"FPS {fps:.0f}"
             )
+            if tb_writer:
+                tb_writer.add_scalar("train/avg_reward_20", avg_r, step)
+                tb_writer.add_scalar("train/alpha", float(agent.alpha), step)
+                tb_writer.add_scalar("train/fps", fps, step)
+                tb_writer.add_scalar("train/episode_count", episode_count, step)
 
         # Evaluate
         if step % eval_interval == 0:
@@ -149,6 +163,9 @@ def train_pick(
                 f"  ── Eval @ {step}: success={sr:.1%}, "
                 f"reward={mr:.2f} ± {eval_result['std_reward']:.2f}"
             )
+            if tb_writer:
+                tb_writer.add_scalar("eval/success_rate", sr, step)
+                tb_writer.add_scalar("eval/mean_reward", mr, step)
 
             if sr > best_success:
                 best_success = sr
@@ -182,6 +199,8 @@ def train_pick(
     with open(results_dir / "pick_training_results.json", "w") as f:
         json.dump(results, f, indent=2)
 
+    if tb_writer:
+        tb_writer.close()
     env.close()
     eval_env.close()
 

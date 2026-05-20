@@ -17,6 +17,14 @@ import numpy as np
 from policies.sac import SACAgent, SACConfig
 
 
+try:
+    from torch.utils.tensorboard import SummaryWriter
+    _HAS_TB = True
+except ImportError:
+    _HAS_TB = False
+    SummaryWriter = None  # type: ignore
+
+
 @dataclass
 class TrainConfig:
     """Training loop configuration."""
@@ -28,6 +36,7 @@ class TrainConfig:
     save_interval: int = 50_000
     max_episode_steps: int = 200
     checkpoint_dir: str = "checkpoints"
+    device: str = "cpu"
 
 
 def train(
@@ -67,6 +76,8 @@ def train(
 
     ckpt_dir = Path(train_cfg.checkpoint_dir)
     ckpt_dir.mkdir(parents=True, exist_ok=True)
+
+    tb_writer = SummaryWriter(log_dir=str(ckpt_dir / "tensorboard")) if _HAS_TB else None
 
     # ── Training loop ────────────────────────────────────────────────────
     history: dict[str, list] = {
@@ -123,6 +134,14 @@ def train(
                 f"Q1 {metrics.get('q1_mean', 0):.2f} | "
                 f"FPS {fps:.0f}"
             )
+            if tb_writer:
+                tb_writer.add_scalar("train/avg_reward_10", avg_r, step)
+                tb_writer.add_scalar("train/alpha", metrics.get("alpha", 0), step)
+                tb_writer.add_scalar("train/q1_mean", metrics.get("q1_mean", 0), step)
+                tb_writer.add_scalar("train/fps", fps, step)
+                if "actor_loss" in metrics:
+                    tb_writer.add_scalar("train/actor_loss", metrics["actor_loss"], step)
+                    tb_writer.add_scalar("train/critic_loss", metrics["critic_loss"], step)
 
         # Evaluation
         if step % train_cfg.eval_interval == 0:
@@ -130,6 +149,9 @@ def train(
             history["eval_rewards"].append(eval_r)
             history["eval_steps"].append(step)
             print(f"  ── Eval @ {step}: mean reward = {eval_r:.2f}")
+            if tb_writer:
+                tb_writer.add_scalar("eval/mean_reward", eval_r, step)
+                tb_writer.add_scalar("eval/n_episodes", episode_count, step)
 
         # Checkpoint
         if step % train_cfg.save_interval == 0:
@@ -137,6 +159,8 @@ def train(
 
     # Final save
     agent.save(ckpt_dir / "sac_final.pt")
+    if tb_writer:
+        tb_writer.close()
     env.close()
     eval_env.close()
 

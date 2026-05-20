@@ -100,6 +100,12 @@ class HierarchicalExecutor:
             result.overall_success = False
             return result
 
+        # Temporarily increase env max steps to accommodate all subtasks
+        original_max_steps = getattr(env, '_max_episode_steps', 200)
+        needed = plan.n_steps * self.max_steps + 50
+        if hasattr(env, '_max_episode_steps'):
+            env._max_episode_steps = max(original_max_steps, needed)
+
         for sub_task in plan.sub_tasks:
             step_result = self._execute_subtask(env, sub_task)
             result.step_results.append(step_result)
@@ -109,6 +115,10 @@ class HierarchicalExecutor:
             if not step_result.success:
                 # Continue attempting remaining sub-tasks
                 pass
+
+        # Restore original max episode steps
+        if hasattr(env, '_max_episode_steps'):
+            env._max_episode_steps = original_max_steps
 
         # Overall success: all sub-tasks succeeded
         result.overall_success = all(

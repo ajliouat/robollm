@@ -116,11 +116,7 @@ def run_comparison(n_episodes: int = 100, seed: int = 0):
     print(f"    SR={results['place_random']['success_rate']:.2%}  "
           f"R={results['place_random']['mean_return']:.1f}")
 
-    print("  Scripted (MoveTo as approx)...")
-    results["place_scripted"] = evaluate_scripted(
-        env, ScriptedMoveTo(), n_episodes, seed)
-    print(f"    SR={results['place_scripted']['success_rate']:.2%}  "
-          f"R={results['place_scripted']['mean_return']:.1f}")
+    print("  Scripted: no valid baseline (PlaceEnv goal ≠ MoveTo target)")
     env.close()
 
     return results

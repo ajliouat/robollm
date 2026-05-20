@@ -15,17 +15,23 @@ from planner.prompt_templates import VALID_PRIMITIVES
 _COLOR_ALIASES = {
     "crimson": "red",
     "scarlet": "red",
+    "ruby": "red",
+    "cherry": "red",
     "azure": "blue",
     "navy": "blue",
     "cyan": "blue",
+    "cobalt": "blue",
     "lime": "green",
     "emerald": "green",
+    "jade": "green",
     "amber": "yellow",
     "gold": "yellow",
+    "lemon": "yellow",
     "tangerine": "orange",
     "violet": "purple",
     "magenta": "purple",
     "lavender": "purple",
+    "plum": "purple",
 }
 
 VALID_COLORS = {"red", "green", "blue", "yellow", "orange", "purple"}
