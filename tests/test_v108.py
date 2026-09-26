@@ -161,6 +161,15 @@ class TestFullBenchmark:
             data = json.load(f)
         assert "results" in data
         assert data["total_episodes"] == report.total_episodes
+        assert data["schema_version"] == 2
+        assert data["provenance"]["seed"] == 0
+        assert data["provenance"]["n_episodes_per_configuration"] == 3
+        assert data["provenance"]["packages"]["mujoco"]
+        for result in data["results"]:
+            assert len(result["episodes"]) == 3
+            assert result["n_successes"] == sum(e["success"] for e in result["episodes"])
+            assert 0 <= result["ci95_low"] <= result["ci95_high"] <= 1
+        assert (tmp_path / "benchmark_episodes.csv").exists()
 
 
 # ── check_thresholds ─────────────────────────────────────────────

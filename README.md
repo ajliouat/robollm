@@ -5,35 +5,35 @@
 ![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)
 ![MuJoCo](https://img.shields.io/badge/MuJoCo-3.x-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.x-ee4c2c?logo=pytorch&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-288_passed-brightgreen)
 ![Version](https://img.shields.io/badge/version-1.1.0-informational)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-> A language-driven robotic manipulation system that uses a small VLM for task
-> planning and RL-trained policies for motor control, evaluated in MuJoCo simulation.
+> A robotics research prototype for language planning, object grounding and
+> motor control in MuJoCo, with CPU baselines and explicit evaluation limits.
 
 ---
 
 ## Overview
 
-RoboLLM bridges the gap between language understanding and physical manipulation.
-A user gives a natural language instruction (e.g., "stack the red block on the blue
-one"), a vision-language model decomposes it into sub-tasks, and RL-trained motor
-policies execute each step in simulation.
+RoboLLM explores a hierarchy in which a user instruction (e.g., "stack the red
+block on the blue one") becomes sub-tasks executed by motor policies. The
+implemented test pipeline uses a rule-based `MockVLM`, privileged simulator
+grounding and scripted controllers. SAC training code and an optional real VLM
+wrapper are present; successful learned end-to-end manipulation is not established.
 
-This is in the lineage of SayCan, Code as Policies, and RT-2 — but scoped to be
-reproducible on a single T4 GPU.
+SayCan, Code as Policies and RT-2 motivate the intended architecture. A single
+T4 GPU is a proposed training target, not a verified end-to-end resource budget.
 
 ## Why This Project Exists
 
 Language-grounded manipulation connects three foundational areas:
 
-- **VLM for planning** — zero-shot task decomposition from natural language
-- **RL for control** — SAC-trained policies with shaped rewards and curriculum
-- **Hierarchical execution** — VLM + RL compose into an end-to-end pipeline
-- **Honest evaluation** — 5 task levels, 100 episodes per config, Wilson CIs
+- **Planning** — test decomposition and grounding before evaluating a learned VLM
+- **RL for control** — investigate SAC with shaped rewards and primitive tasks
+- **Hierarchical execution** — study the interfaces and failure modes between components
+- **Evaluation** — retain seeds and raw outcomes; report Wilson interval endpoints
 
-## Architecture
+## Intended Architecture
 
 ```mermaid
 flowchart TB
@@ -57,26 +57,38 @@ flowchart TB
 | **L4** | Sort | 4–6 | All in correct bins |
 | **L5** | Language | 3+ | All sub-tasks completed |
 
-## Benchmark Results
+## Historical Baseline Results
 
-_100 episodes per task, seed=42, 200-step max, 95% Wilson CI._
+The [archived benchmark](evaluation/results/benchmark_results.json) records
+100 episodes per configuration and a 200-step limit on 22 February 2026. Its
+runner used a base environment seed of 42 but did not seed random actions;
+runtime/code provenance and raw episodes were not recorded. These are archived
+observations, not a reproduction from the current evaluator. Intervals below
+are corrected Wilson endpoints computed from the recorded counts.
 
-| Task | Random | Scripted | Notes |
-|------|--------|----------|-------|
-| L1 Pick & Place | 0.0% ± 1.8% | 0.0% ± 1.8% | Scripted 2.6× better returns |
-| L2 Color Pick | 0.0% ± 1.8% | — | Multi-object selection |
-| L3 Stack | 0.0% ± 1.8% | — | Sequential precision |
-| L4 Sort | 0.0% ± 1.8% | — | N objects → N zones |
-| L5 Language | 4.0% ± 4.1% | — | Random meets some conditions |
+| Task | Random success (95% CI) | Scripted success (95% CI) |
+|------|-------------------------|---------------------------|
+| L1 Pick & Place | 0/100 · 0% [0%, 3.70%] | 0/100 · 0% [0%, 3.70%] |
+| MoveTo | 0/100 · 0% [0%, 3.70%] | 20/100 · 20% [13.34%, 28.88%] |
+| L2 Color Pick | 0/100 · 0% [0%, 3.70%] | — |
+| L3 Stack | 0/100 · 0% [0%, 3.70%] | — |
+| L4 Sort | 0/100 · 0% [0%, 3.70%] | — |
+| L5 Language | 4/100 · 4% [1.57%, 9.84%] | — |
 
-### VLM Planner Accuracy
+L5 checks final geometric predicates that may already hold at reset; these
+results do not demonstrate language understanding. Negative shaped returns
+are not meaningful multiplicative performance gains. See the
+[archive notes](evaluation/results/README.md) and
+[reproduction and evaluation protocol](evaluation/README.md).
 
-| Metric | Result |
-|--------|--------|
-| Decomposition accuracy (20+ scenarios) | 100% |
-| Object grounding (20+ queries) | 100% |
-| Color synonyms | 15+ aliases → 6 canonical |
-| Shape synonyms | 9 aliases → 3 canonical |
+### Planner and Grounding Scope
+
+Planner tests exercise keyword rules in `MockVLM`; grounding tests exercise
+`SimGrounder` using simulator object labels and poses. These are software
+checks, not held-out VLM or visual-grounding accuracy measurements. Visual
+DINOv2 grounding remains unimplemented. The executor currently dispatches
+`move_to`, `pick` and `place` with scripted policies; successful multi-object
+instruction following remains unvalidated.
 
 ## Quick Start
 
@@ -111,14 +123,14 @@ robollm/
 │   └── run_aws.sh               # AWS T4 training script
 ├── evaluation/                  # Benchmark suite + video recorder
 │   └── benchmark.py             # SAC checkpoint evaluation support
-└── tests/                       # 288 tests across 8 files
+└── tests/                       # Environment, policy, planner and evaluation tests
 ```
 
 ## Models
 
 | Component | Model | Size | Quantization |
 |-----------|-------|------|--------------|
-| VLM Planner | PaliGemma-3B | 3B | GPTQ 4-bit |
+| Optional VLM wrapper (not benchmarked) | PaliGemma-3B | 3B | Optional bitsandbytes 4-bit |
 | RL Policy | MLP Actor-Critic | ~200K | fp32 |
 
 ## References
