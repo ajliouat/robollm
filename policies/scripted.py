@@ -12,6 +12,20 @@ from enum import Enum, auto
 import numpy as np
 
 
+def _target_position(info: dict) -> np.ndarray:
+    """Prefer an explicitly selected target; never guess among many objects."""
+    positions = info.get("obj_positions", {})
+    if "target_name" in info and "obj_positions" in info:
+        if info["target_name"] not in positions:
+            raise ValueError(f"Target {info['target_name']!r} is absent from obj_positions")
+        return np.asarray(positions[info["target_name"]], dtype=float)
+    if "obj_pos" in info:
+        return np.asarray(info["obj_pos"], dtype=float)
+    if len(positions) == 1:
+        return np.asarray(next(iter(positions.values())), dtype=float)
+    raise ValueError("Provide obj_pos or target_name for an unambiguous object target")
+
+
 class Phase(Enum):
     APPROACH = auto()
     DESCEND = auto()
@@ -64,22 +78,18 @@ class ScriptedPickPlace:
         """
         ee_pos = info["ee_pos"]
 
-        # Get object position
-        if "obj_positions" in info:
-            obj_positions = info["obj_positions"]
-            obj_pos = next(iter(obj_positions.values()))
-        else:
-            obj_pos = info.get("obj_pos", np.array([0.5, 0.0, 0.435]))
+        obj_pos = _target_position(info)
 
         goal_pos = info.get("goal_pos", obj_pos + np.array([0.1, 0.0, 0.0]))
 
         table_z = 0.415
+        lift_target_z = info.get("lift_target_z", table_z + self.lift_height)
         action = np.zeros(4)
 
         if self.phase == Phase.APPROACH:
             # Move above object
             target = np.array([
-                obj_pos[0], obj_pos[1], table_z + self.approach_height,
+                obj_pos[0], obj_pos[1], info.get("approach_z", table_z + self.approach_height),
             ])
             delta = self._proportional(ee_pos, target)
             action[:3] = delta
@@ -111,18 +121,18 @@ class ScriptedPickPlace:
         elif self.phase == Phase.LIFT:
             # Lift object
             target = np.array([
-                ee_pos[0], ee_pos[1], table_z + self.lift_height,
+                ee_pos[0], ee_pos[1], lift_target_z,
             ])
             delta = self._proportional(ee_pos, target)
             action[:3] = delta
             action[3] = -1.0  # keep closed
-            if ee_pos[2] > table_z + self.lift_height - 0.02:
+            if ee_pos[2] > lift_target_z - 0.02:
                 self.phase = Phase.MOVE
 
         elif self.phase == Phase.MOVE:
             # Move above goal
             target = np.array([
-                goal_pos[0], goal_pos[1], table_z + self.lift_height,
+                goal_pos[0], goal_pos[1], lift_target_z,
             ])
             delta = self._proportional(ee_pos, target)
             action[:3] = delta
@@ -173,10 +183,7 @@ class ScriptedMoveTo:
 
     def act(self, info: dict) -> np.ndarray:
         ee_pos = info["ee_pos"]
-        if "obj_positions" in info:
-            obj_pos = next(iter(info["obj_positions"].values()))
-        else:
-            obj_pos = info.get("obj_pos", np.array([0.5, 0.0, 0.435]))
+        obj_pos = _target_position(info)
 
         error = obj_pos - ee_pos
         action = np.zeros(4)

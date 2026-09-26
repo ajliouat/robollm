@@ -64,6 +64,16 @@ physical bins. L5 predicates can hold initially and do not verify all instructed
 actions. Strengthening these task contracts is necessary before interpreting
 success rates as complete manipulation performance.
 
+## Grounded control study
+
+The [grounded reaching study](evaluation/CONTROL_STUDY.md) investigates an
+executor bug that substituted the first scene object for the grounded target.
+The repaired path follows the named object's live position, distinguishes
+already-satisfied states and stops a sequence on failure or episode completion.
+The study compares four controls on identical three-object scenes, with a frozen
+protocol and complete episode traces. Its task is instantaneous reaching, not
+learned language understanding or successful grasping.
+
 ## Historical Baseline Results
 
 The [archived benchmark](evaluation/results/benchmark_results.json) records

@@ -1,5 +1,11 @@
 # Evaluation protocol and evidence
 
+For the new named-target, multi-object control study, see
+[Grounded reaching](CONTROL_STUDY.md). It exercises the hierarchical executor
+with one reaching primitive. The general benchmark described below continues
+to measure each environment's own success flag; its metric was not silently
+redefined to match that study.
+
 The benchmark evaluates environment/policy pairs in MuJoCo. The default suite
 contains eight configurations: random and scripted policies for PickPlace and
 MoveTo, and random policies for ColorPick, Stack, Sort and ComplexLanguage.
@@ -105,6 +111,7 @@ uses privileged simulator object metadata. Unit-test coverage for these
 components is not learned VLM or visual-grounding accuracy. The real VLM
 wrapper is optional and was not evaluated by this benchmark; DINOv2 grounding
 is a TODO. The hierarchical executor currently uses scripted policies and
-handles `move_to`, `pick` and `place`, with unresolved multi-object targeting
-and scene-success limitations. Inspecting parser support or executing an
-integration test is not proof of successful end-to-end instruction following.
+handles `move_to`, `pick` and `place`. The named-target repair and its narrower
+reaching evaluation are documented separately; the L1–L5 task success predicates
+and physical manipulation limits remain. Inspecting parser support or executing
+an integration test is not proof of successful end-to-end instruction following.

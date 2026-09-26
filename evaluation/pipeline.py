@@ -1,36 +1,47 @@
-"""
-Hierarchical executor — runs sub-task plans on MuJoCo environments.
+"""Execute grounded primitive plans with explicit target and outcome semantics.
 
-Takes a TaskPlan from the Planner and executes each sub-task using
-the appropriate RL policy or scripted baseline.
+Controllers and grounding use privileged simulator state. The pick/place checks
+are motion/release heuristics, not proof of a secure grasp or a stable stack.
 """
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from numbers import Integral
 from typing import Any
 
 import numpy as np
 
 from planner.grounder import GrounderBase, SimGrounder, GroundingResult
 from planner.task_parser import TaskPlan, SubTask
-from policies.scripted import ScriptedPickPlace, ScriptedMoveTo
+from policies.scripted import Phase, ScriptedPickPlace, ScriptedMoveTo
 
 
 @dataclass
 class StepResult:
-    """Result of executing a single sub-task."""
+    """A newly achieved success is separate from a pre-satisfied predicate."""
     sub_task: SubTask
     success: bool
     total_reward: float
     n_steps: int
     grounding: GroundingResult | None = None
     error: str = ""
+    target_name: str | None = None
+    source_name: str | None = None
+    already_satisfied: bool = False
+    terminated: bool = False
+    truncated: bool = False
+    skipped: bool = False
+    initial_distance: float | None = None
+    final_distance: float | None = None
+
+    @property
+    def completed(self) -> bool:
+        """A satisfied precondition can permit the next step without new credit."""
+        return self.success or self.already_satisfied
 
 
 @dataclass
 class ExecutionResult:
-    """Result of executing a full task plan."""
     instruction: str
     step_results: list[StepResult] = field(default_factory=list)
     overall_success: bool = False
@@ -45,283 +56,277 @@ class ExecutionResult:
     def sub_task_success_rate(self) -> float:
         if not self.step_results:
             return 0.0
-        return sum(1 for s in self.step_results if s.success) / len(self.step_results)
+        return sum(s.success for s in self.step_results) / len(self.step_results)
 
 
 class HierarchicalExecutor:
-    """Execute sub-task plans on a multi-object MuJoCo environment.
+    """Execute named-object plans on an already-reset MultiObjectEnv.
 
-    Combines planner output with object grounding and primitive policies
-    to form the complete instruction → execution pipeline.
-
-    Usage:
-        from planner import Planner, MockVLM, SimGrounder
-        from evaluation.pipeline import HierarchicalExecutor
-
-        env = MultiObjectEnv(n_objects=3)
-        executor = HierarchicalExecutor(grounder=SimGrounder())
-        planner = Planner(MockVLM())
-
-        plan = planner.plan("pick up the red block and place it on the blue one")
-        result = executor.execute(env, plan, "pick up the red block...")
+    Reaching means EE within 3 cm of the named object's current centre. A
+    predicate true before any action is returned as ``already_satisfied``, not
+    ``success``. Pick/place retain the source identity within one execute call.
+    A failure or terminal environment stops the plan; later steps are skipped.
     """
+    REACH_DISTANCE = 0.03
+    PICK_RISE = 0.08
+    PICK_EE_DISTANCE = 0.06
+    PLACE_DISTANCE = 0.05
+    CLOSED_OPENING = 0.015
+    RELEASED_OPENING = 0.025
 
     def __init__(
         self,
         grounder: GrounderBase | None = None,
         max_steps_per_subtask: int = 200,
+        *,
+        move_to_policy: Any | None = None,
     ):
+        if (isinstance(max_steps_per_subtask, bool)
+                or not isinstance(max_steps_per_subtask, Integral)
+                or max_steps_per_subtask <= 0):
+            raise ValueError("max_steps_per_subtask must be a positive integer")
         self.grounder = grounder or SimGrounder()
-        self.max_steps = max_steps_per_subtask
-
-        # Policies for each primitive
+        self.max_steps = int(max_steps_per_subtask)
         self._pick_place = ScriptedPickPlace()
-        self._move_to = ScriptedMoveTo()
+        self._move_to = ScriptedMoveTo() if move_to_policy is None else move_to_policy
+        if not callable(getattr(self._move_to, "act", None)):
+            raise TypeError("move_to_policy must provide act(info)")
+        self._held_object_name: str | None = None
 
-    def execute(
-        self,
-        env: Any,
-        plan: TaskPlan,
-        instruction: str = "",
-    ) -> ExecutionResult:
-        """Execute a task plan on the environment.
+    def execute(self, env: Any, plan: TaskPlan, instruction: str = "") -> ExecutionResult:
+        """Execute one plan; restore the environment horizon even on exceptions.
 
-        Args:
-            env: Gymnasium env (should already be reset).
-            plan: Validated task plan from Planner.
-            instruction: Original instruction string.
-
-        Returns:
-            ExecutionResult with per-step and overall metrics.
+        Overall success requires every step completed and at least one new
+        success. An entirely pre-satisfied plan therefore gains no control credit.
+        Exceptions from the environment propagate; they are never success rows.
         """
         result = ExecutionResult(instruction=instruction)
-
+        self._held_object_name = None
         if not plan.valid or plan.n_steps == 0:
-            result.overall_success = False
             return result
 
-        # Temporarily increase env max steps to accommodate all subtasks
-        original_max_steps = getattr(env, '_max_episode_steps', 200)
-        needed = plan.n_steps * self.max_steps + 50
-        if hasattr(env, '_max_episode_steps'):
-            env._max_episode_steps = max(original_max_steps, needed)
+        original_max_steps = getattr(env, "_max_episode_steps", None)
+        elapsed = getattr(env, "_elapsed_steps", 0)
+        was_truncated = original_max_steps is not None and elapsed >= original_max_steps
+        was_terminated = bool(
+            elapsed > 0 and callable(getattr(env, "_check_terminated", None))
+            and env._check_terminated()
+        )
+        stop_reason = "Environment already ended; reset before executing" if (
+            was_truncated or was_terminated
+        ) else ""
+        try:
+            if original_max_steps is not None and not stop_reason:
+                env._max_episode_steps = max(
+                    original_max_steps, elapsed + plan.n_steps * self.max_steps,
+                )
+            for sub_task in plan.sub_tasks:
+                if stop_reason:
+                    step_result = StepResult(
+                        sub_task, False, 0.0, 0, error=stop_reason, skipped=True,
+                        terminated=was_terminated, truncated=was_truncated,
+                    )
+                else:
+                    step_result = self._execute_subtask(env, sub_task)
+                    was_terminated, was_truncated = step_result.terminated, step_result.truncated
+                    if was_terminated or was_truncated:
+                        stop_reason = "Skipped because the environment ended"
+                    elif not step_result.completed:
+                        stop_reason = "Skipped after a failed prerequisite"
+                result.step_results.append(step_result)
+                result.total_reward += step_result.total_reward
+                result.total_steps += step_result.n_steps
+        finally:
+            if original_max_steps is not None:
+                env._max_episode_steps = original_max_steps
+            self._held_object_name = None
 
-        for sub_task in plan.sub_tasks:
-            step_result = self._execute_subtask(env, sub_task)
-            result.step_results.append(step_result)
-            result.total_reward += step_result.total_reward
-            result.total_steps += step_result.n_steps
-
-            if not step_result.success:
-                # Continue attempting remaining sub-tasks
-                pass
-
-        # Restore original max episode steps
-        if hasattr(env, '_max_episode_steps'):
-            env._max_episode_steps = original_max_steps
-
-        # Overall success: all sub-tasks succeeded
-        result.overall_success = all(
-            s.success for s in result.step_results
+        result.overall_success = (
+            all(s.completed for s in result.step_results)
+            and any(s.success for s in result.step_results)
         )
         return result
 
-    def _execute_subtask(
-        self, env: Any, sub_task: SubTask,
-    ) -> StepResult:
-        """Execute a single sub-task on the environment."""
+    def _execute_subtask(self, env: Any, sub_task: SubTask) -> StepResult:
+        if sub_task.primitive not in {"move_to", "pick", "place"}:
+            return StepResult(sub_task, False, 0.0, 0, error=f"Unknown primitive: {sub_task.primitive}")
+        if sub_task.primitive == "place" and self._held_object_name is None:
+            return StepResult(sub_task, False, 0.0, 0, error="Place requires a successful pick in this plan")
+        if sub_task.primitive == "pick" and self._held_object_name is not None:
+            return StepResult(sub_task, False, 0.0, 0, error="Place the held object before picking another")
+        if sub_task.primitive == "move_to" and self._held_object_name is not None:
+            return StepResult(sub_task, False, 0.0, 0, error="Open-gripper move_to cannot carry a picked object; use place")
 
-        # Build scene info for grounding
-        scene_info = self._build_scene_info(env)
-
-        # Ground the target
-        grounding = self.grounder.ground(
-            sub_task.target, scene_info,
-        )
-
-        if not grounding.success:
-            return StepResult(
-                sub_task=sub_task,
-                success=False,
-                total_reward=0.0,
-                n_steps=0,
-                grounding=grounding,
-                error=f"Grounding failed: {grounding.error}",
-            )
-
-        target_pos = grounding.matched.position.copy()
-
-        # Select policy based on primitive
+        grounding = self.grounder.ground(sub_task.target, self._build_scene_info(env))
+        if not grounding.success or grounding.matched is None:
+            return StepResult(sub_task, False, 0.0, 0, grounding,
+                              error=f"Grounding failed: {grounding.error}")
+        name = grounding.matched.name
+        # Resolve name against the live scene, not a stale grounding snapshot.
+        try:
+            self._object_position(env, name)
+        except LookupError as exc:
+            return StepResult(sub_task, False, 0.0, 0, grounding,
+                              error=str(exc), target_name=name)
         if sub_task.primitive == "move_to":
-            return self._run_move_to(env, sub_task, target_pos, grounding)
-        elif sub_task.primitive == "pick":
-            return self._run_pick(env, sub_task, target_pos, grounding)
-        elif sub_task.primitive == "place":
-            return self._run_place(env, sub_task, target_pos, grounding)
-        else:
-            return StepResult(
-                sub_task=sub_task,
-                success=False,
-                total_reward=0.0,
-                n_steps=0,
-                error=f"Unknown primitive: {sub_task.primitive}",
-            )
+            return self._run_move_to(env, sub_task, name, grounding)
+        if sub_task.primitive == "pick":
+            return self._run_pick(env, sub_task, name, grounding)
+        return self._run_place(env, sub_task, name, grounding)
 
-    def _run_move_to(
-        self, env: Any, sub_task: SubTask,
-        target_pos: np.ndarray, grounding: GroundingResult,
-    ) -> StepResult:
-        """Execute move_to primitive."""
-        self._move_to.reset()
-        total_reward = 0.0
+    def _run_move_to(self, env: Any, sub_task: SubTask, name: str,
+                     grounding: GroundingResult) -> StepResult:
+        if callable(getattr(self._move_to, "reset", None)):
+            self._move_to.reset()
+        distance = self._distance_to_object(env, name)
+        result = StepResult(sub_task, False, 0.0, 0, grounding, target_name=name,
+                            initial_distance=distance, final_distance=distance)
+        if distance < self.REACH_DISTANCE:
+            result.already_satisfied = True
+            return result
 
-        for step in range(self.max_steps):
-            info = self._get_policy_info(env, target_pos)
-            action = self._move_to.act(info)
-            _, reward, term, trunc, info_step = env.step(action)
-            total_reward += reward
+        for _ in range(self.max_steps):
+            target_pos = self._object_position(env, name)
+            info = self._get_policy_info(env, target_pos, target_name=name)
+            _, reward, term, trunc, _ = env.step(self._move_to.act(info))
+            self._record_step(result, reward, term, trunc)
+            result.final_distance = self._distance_to_object(env, name)
+            result.success = result.final_distance < self.REACH_DISTANCE
+            if result.success or term or trunc:
+                return result
+        result.error = "Reaching step budget exhausted"
+        return result
 
-            # Check success: EE within 3cm of target
-            ee_pos = self._get_ee_pos(env)
-            dist = float(np.linalg.norm(ee_pos - target_pos))
-            if dist < 0.03 or term or trunc:
-                return StepResult(
-                    sub_task=sub_task,
-                    success=dist < 0.03,
-                    total_reward=total_reward,
-                    n_steps=step + 1,
-                    grounding=grounding,
-                )
-
-        return StepResult(
-            sub_task=sub_task,
-            success=False,
-            total_reward=total_reward,
-            n_steps=self.max_steps,
-            grounding=grounding,
-        )
-
-    def _run_pick(
-        self, env: Any, sub_task: SubTask,
-        target_pos: np.ndarray, grounding: GroundingResult,
-    ) -> StepResult:
-        """Execute pick primitive (approach + grasp + lift)."""
+    def _run_pick(self, env: Any, sub_task: SubTask, name: str,
+                  grounding: GroundingResult) -> StepResult:
         self._pick_place.reset()
-        total_reward = 0.0
-
-        for step in range(self.max_steps):
-            info = self._get_policy_info(env, target_pos)
+        start_z = float(self._object_position(env, name)[2])
+        result = StepResult(sub_task, False, 0.0, 0, grounding,
+                            target_name=name, source_name=name)
+        if self._gripper_opening(env) is None:
+            result.error = "Pick requires observable gripper opening"
+            return result
+        close_commanded = False
+        for _ in range(self.max_steps):
+            obj_pos = self._object_position(env, name)
+            info = self._get_policy_info(env, obj_pos, target_name=name)
+            info["approach_z"] = start_z + self._pick_place.approach_height
+            info["lift_target_z"] = start_z + self.PICK_RISE + self._pick_place.grasp_height_offset + 0.02
             action = self._pick_place.act(info)
-            _, reward, term, trunc, info_step = env.step(action)
-            total_reward += reward
+            close_commanded |= bool(action[3] < 0)
+            _, reward, term, trunc, _ = env.step(action)
+            self._record_step(result, reward, term, trunc)
+            obj_pos = self._object_position(env, name)
+            opening = self._gripper_opening(env)
+            result.success = bool(
+                close_commanded and opening is not None and opening < self.CLOSED_OPENING
+                and obj_pos[2] - start_z >= self.PICK_RISE
+                and np.linalg.norm(self._get_ee_pos(env) - obj_pos) < self.PICK_EE_DISTANCE
+            )
+            if result.success:
+                self._held_object_name = name
+            if result.success or term or trunc:
+                return result
+        result.error = "Pick motion/gripper criteria were not achieved"
+        return result
 
-            # Consider pick successful if object is lifted
-            obj_pos = self._get_first_obj_pos(env)
-            if obj_pos is not None and obj_pos[2] > 0.50:
-                return StepResult(
-                    sub_task=sub_task,
-                    success=True,
-                    total_reward=total_reward,
-                    n_steps=step + 1,
-                    grounding=grounding,
-                )
-
-            if term or trunc:
-                break
-
-        return StepResult(
-            sub_task=sub_task,
-            success=False,
-            total_reward=total_reward,
-            n_steps=min(step + 1, self.max_steps),
-            grounding=grounding,
-        )
-
-    def _run_place(
-        self, env: Any, sub_task: SubTask,
-        target_pos: np.ndarray, grounding: GroundingResult,
-    ) -> StepResult:
-        """Execute place primitive — move to target, lower, release."""
-        # Reuse pick_place controller (it has move and release phases)
-        # Set it to MOVE phase since we should already be holding
-        from policies.scripted import Phase
+    def _run_place(self, env: Any, sub_task: SubTask, target_name: str,
+                   grounding: GroundingResult) -> StepResult:
+        source_name = self._held_object_name
+        result = StepResult(sub_task, False, 0.0, 0, grounding,
+                            target_name=target_name, source_name=source_name)
+        if source_name == target_name:
+            result.error = "Cannot place an object relative to itself"
+            return result
+        if self._gripper_opening(env) is None:
+            result.error = "Place requires observable gripper opening"
+            return result
+        self._pick_place.reset()
         self._pick_place.phase = Phase.MOVE
-        total_reward = 0.0
-
-        for step in range(self.max_steps):
-            info = self._get_policy_info(env, target_pos, goal=target_pos)
+        released = False
+        for _ in range(self.max_steps):
+            source_pos = self._object_position(env, source_name)
+            target_pos = self._object_position(env, target_name)
+            info = self._get_policy_info(env, source_pos, goal=target_pos,
+                                         target_name=source_name)
+            # Stay above the current source/destination while translating.
+            info["lift_target_z"] = max(source_pos[2], target_pos[2] + self._pick_place.lift_height)
+            phase_before = self._pick_place.phase
             action = self._pick_place.act(info)
-            _, reward, term, trunc, info_step = env.step(action)
-            total_reward += reward
-
-            # Place success: object near target and on table
-            obj_pos = self._get_first_obj_pos(env)
-            if obj_pos is not None:
-                dist = float(np.linalg.norm(obj_pos[:2] - target_pos[:2]))
-                if dist < 0.05 and obj_pos[2] < 0.50:
-                    return StepResult(
-                        sub_task=sub_task,
-                        success=True,
-                        total_reward=total_reward,
-                        n_steps=step + 1,
-                        grounding=grounding,
-                    )
-
-            if term or trunc:
-                break
-
-        return StepResult(
-            sub_task=sub_task,
-            success=False,
-            total_reward=total_reward,
-            n_steps=min(step + 1, self.max_steps),
-            grounding=grounding,
-        )
-
-    # ── Helpers ───────────────────────────────────────────────────
+            released |= bool(phase_before in {Phase.RELEASE, Phase.DONE} and action[3] > 0)
+            _, reward, term, trunc, _ = env.step(action)
+            self._record_step(result, reward, term, trunc)
+            source_pos = self._object_position(env, source_name)
+            target_pos = self._object_position(env, target_name)
+            opening = self._gripper_opening(env)
+            result.success = bool(
+                released and opening is not None and opening > self.RELEASED_OPENING
+                and np.linalg.norm(source_pos - target_pos) < self.PLACE_DISTANCE
+            )
+            if result.success:
+                self._held_object_name = None
+            if result.success or term or trunc:
+                return result
+        result.error = "Source placement/release criteria were not achieved"
+        return result
 
     @staticmethod
-    def _get_ee_pos(env: Any) -> np.ndarray:
-        """Get end-effector position from env."""
-        if hasattr(env, "ee_pos"):
-            return env.ee_pos
-        return np.zeros(3)
+    def _record_step(result: StepResult, reward: float, terminated: bool, truncated: bool) -> None:
+        if not np.isfinite(reward):
+            raise ValueError("Non-finite reward during plan execution")
+        result.total_reward += float(reward)
+        result.n_steps += 1
+        result.terminated = bool(terminated)
+        result.truncated = bool(truncated)
 
     @staticmethod
-    def _get_first_obj_pos(env: Any) -> np.ndarray | None:
-        """Get first object position from env."""
-        if hasattr(env, "object_pos"):
-            return env.object_pos(0)
-        return None
+    def _position(value: Any) -> np.ndarray:
+        pos = np.asarray(value, dtype=float)
+        if pos.shape != (3,) or not np.all(np.isfinite(pos)):
+            raise ValueError("Expected a finite 3D simulator position")
+        return pos.copy()
 
-    def _get_policy_info(
-        self, env: Any, target_pos: np.ndarray,
-        goal: np.ndarray | None = None,
-    ) -> dict:
-        """Build info dict for scripted policies."""
-        info: dict[str, Any] = {
-            "ee_pos": self._get_ee_pos(env),
-            "obj_pos": target_pos.copy(),
-        }
+    @classmethod
+    def _get_ee_pos(cls, env: Any) -> np.ndarray:
+        if not hasattr(env, "ee_pos"):
+            raise ValueError("Environment does not expose ee_pos")
+        return cls._position(env.ee_pos)
+
+    @classmethod
+    def _object_position(cls, env: Any, name: str) -> np.ndarray:
+        indices = [i for i, spec in enumerate(getattr(env, "_obj_specs", [])) if spec.name == name]
+        if len(indices) != 1 or not callable(getattr(env, "object_pos", None)):
+            raise LookupError(f"Expected one live object named {name!r}; found {len(indices)}")
+        return cls._position(env.object_pos(indices[0]))
+
+    @classmethod
+    def _distance_to_object(cls, env: Any, name: str) -> float:
+        return float(np.linalg.norm(cls._get_ee_pos(env) - cls._object_position(env, name)))
+
+    @staticmethod
+    def _gripper_opening(env: Any) -> float | None:
+        if hasattr(env, "gripper_opening"):
+            opening = float(env.gripper_opening)
+        elif hasattr(env, "data") and hasattr(env.data, "qpos") and len(env.data.qpos) >= 9:
+            opening = float(np.mean(env.data.qpos[7:9]))
+        else:
+            return None
+        return opening if np.isfinite(opening) else None
+
+    def _get_policy_info(self, env: Any, target_pos: np.ndarray,
+                         goal: np.ndarray | None = None,
+                         target_name: str | None = None) -> dict:
+        info = {"ee_pos": self._get_ee_pos(env), "obj_pos": target_pos.copy()}
+        if target_name is not None:
+            info["target_name"] = target_name
         if goal is not None:
             info["goal_pos"] = goal.copy()
-        elif hasattr(env, "object_pos"):
-            info["obj_pos"] = env.object_pos(0)
         return info
 
-    @staticmethod
-    def _build_scene_info(env: Any) -> dict:
-        """Extract scene info for grounder from env."""
-        scene: dict[str, Any] = {"objects": []}
-
-        if hasattr(env, "_obj_specs"):
-            for i, spec in enumerate(env._obj_specs):
-                pos = env.object_pos(i) if hasattr(env, "object_pos") else np.zeros(3)
-                scene["objects"].append({
-                    "name": spec.name,
-                    "color": spec.color_name,
-                    "shape": spec.shape,
-                    "position": pos.tolist(),
-                })
-
-        return scene
+    @classmethod
+    def _build_scene_info(cls, env: Any) -> dict:
+        return {"objects": [
+            {"name": spec.name, "color": spec.color_name, "shape": spec.shape,
+             "position": cls._position(env.object_pos(i)).tolist()}
+            for i, spec in enumerate(getattr(env, "_obj_specs", []))
+        ]}
