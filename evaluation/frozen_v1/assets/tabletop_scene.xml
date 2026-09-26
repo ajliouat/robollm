@@ -10,8 +10,6 @@
     [9:16]  — block free joint (3 pos + 4 quat)
   
   Actuators: position-controlled (PD) for all 9 DOFs.
-  Robot bodies use ideal gravity compensation; objects retain normal gravity.
-  This is a simulator control assumption, not a validated hardware controller.
 -->
 <mujoco model="robollm_tabletop">
   <compiler angle="radian" autolimits="true"/>
@@ -73,52 +71,42 @@
       <geom name="base_mount" type="cylinder" size="0.05 0.015"
             rgba="0.2 0.2 0.2 1" mass="5"/>
 
-      <body name="link1" pos="0 0 0.03" childclass="arm" gravcomp="1">
+      <body name="link1" pos="0 0 0.03" childclass="arm">
         <joint name="j1" type="hinge" axis="0 0 1" range="-2.9 2.9"/>
-        <!-- Preserve the f102fe1 inertial model while correcting collider clearance. -->
-        <inertial mass="0.8712683625955694" pos="0 0 0.06"
-                  quat="6.123233995736766e-17 1 0 0"
-                  diaginertia="0.002584316004745012 0.002584316004745012 0.0006541214783794429"/>
-        <!-- Lower cap clears the base top by 5 mm and the tabletop by 20 mm. -->
-        <geom name="link1_geom" fromto="0 0 0.03 0 0 0.12" size="0.04"/>
+        <geom fromto="0 0 0 0 0 0.12" size="0.04"/>
 
-        <body name="link2" pos="0 0 0.12" gravcomp="1">
+        <body name="link2" pos="0 0 0.12">
           <joint name="j2" type="hinge" axis="0 1 0" range="-1.8 1.8"/>
-          <inertial mass="1.3341296802244655" pos="0 0 0.15"
-                    quat="6.123233995736766e-17 1 0 0"
-                    diaginertia="0.01384861885540501 0.01384861885540501 0.0007951541175837838"/>
-          <!-- A 20 mm collar clearance removes the unavoidable overlap at the elbow.
-               Kinematic link length stays 0.30 m; self-collision remains enabled. -->
-          <geom name="link2_geom" fromto="0 0 0 0 0 0.28" size="0.035"/>
+          <geom fromto="0 0 0 0 0 0.30" size="0.035"/>
 
-          <body name="link3" pos="0 0 0.30" gravcomp="1">
+          <body name="link3" pos="0 0 0.30">
             <joint name="j3" type="hinge" axis="0 0 1" range="-2.9 2.9"/>
-            <geom name="link3_geom" fromto="0 0 0 0 0 0.06" size="0.03"/>
+            <geom fromto="0 0 0 0 0 0.06" size="0.03"/>
 
-            <body name="link4" pos="0 0 0.06" gravcomp="1">
+            <body name="link4" pos="0 0 0.06">
               <joint name="j4" type="hinge" axis="0 1 0" range="-3.1 -0.07"/>
-              <geom name="link4_geom" fromto="0 0 0 0 0 0.28" size="0.03"
+              <geom fromto="0 0 0 0 0 0.28" size="0.03"
                     rgba="0.85 0.85 0.85 1"/>
 
-              <body name="link5" pos="0 0 0.28" gravcomp="1">
+              <body name="link5" pos="0 0 0.28">
                 <joint name="j5" type="hinge" axis="0 0 1" range="-2.9 2.9"/>
-                <geom name="link5_geom" fromto="0 0 0 0 0 0.06" size="0.025"
+                <geom fromto="0 0 0 0 0 0.06" size="0.025"
                       rgba="0.85 0.85 0.85 1"/>
 
-                <body name="link6" pos="0 0 0.06" gravcomp="1">
+                <body name="link6" pos="0 0 0.06">
                   <joint name="j6" type="hinge" axis="0 1 0"
                          range="-0.02 3.75"/>
-                  <geom name="link6_geom" fromto="0 0 0 0 0 0.09" size="0.02"
+                  <geom fromto="0 0 0 0 0 0.09" size="0.02"
                         rgba="0.85 0.85 0.85 1"/>
 
-                  <body name="link7" pos="0 0 0.09" gravcomp="1">
+                  <body name="link7" pos="0 0 0.09">
                     <joint name="j7" type="hinge" axis="0 0 1"
                            range="-2.9 2.9"/>
-                    <geom name="link7_geom" type="cylinder" size="0.025 0.008"
+                    <geom type="cylinder" size="0.025 0.008"
                           rgba="0.3 0.3 0.3 1"/>
 
                     <!-- Gripper -->
-                    <body name="gripper_base" pos="0 0 0.015" gravcomp="1">
+                    <body name="gripper_base" pos="0 0 0.015">
                       <geom name="gripper_mount" type="box"
                             size="0.024 0.017 0.008"
                             rgba="0.25 0.25 0.25 1" mass="0.3"/>
@@ -128,7 +116,7 @@
 
                       <!-- Left finger -->
                       <body name="finger_l" pos="0 -0.012 0.016"
-                            childclass="finger" gravcomp="1">
+                            childclass="finger">
                         <joint name="finger_l" type="slide"
                                axis="0 -1 0" range="0 0.04"/>
                         <geom name="finger_l_geom"
@@ -137,7 +125,7 @@
 
                       <!-- Right finger -->
                       <body name="finger_r" pos="0 0.012 0.016"
-                            childclass="finger" gravcomp="1">
+                            childclass="finger">
                         <joint name="finger_r" type="slide"
                                axis="0 1 0" range="0 0.04"/>
                         <geom name="finger_r_geom"
@@ -194,13 +182,11 @@
               ctrlrange="0 0.04"/>
   </actuator>
 
-  <!-- Collision-free custom-arm home; synchronized with envs.arm_control.HOME_QPOS.
-       Chosen by development forward kinematics/clearance, not endpoint success. -->
+  <!-- Home configuration: arm in L-pose above table, fingers half open -->
   <keyframe>
     <key name="home"
-         qpos="-1.5707963267948966 -0.5 0 -1.8 0 1.5 0.785
+         qpos="0 -0.785 0 -2.356 0 1.571 0.785
                0.02 0.02
-               0.5 0.1 0.435 1 0 0 0"
-         ctrl="-1.5707963267948966 -0.5 0 -1.8 0 1.5 0.785 0.02 0.02"/>
+               0.5 0.1 0.435 1 0 0 0"/>
   </keyframe>
 </mujoco>

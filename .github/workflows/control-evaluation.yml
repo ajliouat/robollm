@@ -2,7 +2,7 @@ name: Grounded control checks
 
 on:
   push:
-    branches: [main, codex/grounded-control-evaluation]
+    branches: [main, codex/grounded-control-evaluation, codex/reaching-control-diagnostics]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -30,11 +30,16 @@ jobs:
           tests/test_v104.py tests/test_v106.py tests/test_v107.py
           tests/test_benchmark_reproducibility.py
           tests/test_pipeline_grounding.py tests/test_grounded_control.py
+          tests/test_arm_control.py tests/test_control_repair.py
           --junitxml=runs/control-tests.xml
       - name: Run development-seed control smoke
         run: >-
           python -m evaluation.grounded_control
           --seeds 17 18 --output runs/control-ci.json
+      - name: Run paired repair development smoke
+        run: >-
+          python -m evaluation.control_repair
+          --seeds 17 18 --output runs/control-repair-ci.json.gz
       - name: Retain smoke evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -42,5 +47,6 @@ jobs:
           name: grounded-control-smoke
           path: |
             runs/control-ci.json
+            runs/control-repair-ci.json.gz
             runs/control-tests.xml
           if-no-files-found: error

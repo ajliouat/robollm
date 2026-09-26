@@ -24,6 +24,8 @@ import mujoco
 import numpy as np
 from gymnasium import spaces
 
+from envs.arm_control import HOME_QPOS as _HOME_QPOS
+
 # ── Paths ────────────────────────────────────────────────────────────────────
 
 _ASSET_DIR = Path(__file__).parent / "assets"
@@ -39,11 +41,6 @@ _DELTA_SCALE = 0.05  # max EE displacement per step (m)
 # ── Constants ────────────────────────────────────────────────────────────────
 
 _N_ARM_JOINTS = 7
-_HOME_QPOS = np.array(
-    [0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785,  # arm
-     0.02, 0.02],                                      # fingers (half open)
-    dtype=np.float64,
-)
 _OBS_DIM = 29  # 7+7+1+3+4+3+4
 
 
@@ -134,6 +131,10 @@ class TabletopEnv(gym.Env):
 
         # Arm → home configuration
         self.data.qpos[:9] = _HOME_QPOS
+        # Reset the position servos to the same pose, including before step().
+        self.data.ctrl[self._arm_act_ids] = _HOME_QPOS[:7]
+        self.data.ctrl[self._finger_l_act] = _HOME_QPOS[7]
+        self.data.ctrl[self._finger_r_act] = _HOME_QPOS[8]
 
         # Randomise block position on table surface
         bx = self.np_random.uniform(0.35, 0.65)

@@ -16,8 +16,6 @@ from typing import Sequence
 
 import numpy as np
 
-from envs.arm_control import HOME_QPOS
-
 # ── Object catalogue ─────────────────────────────────────────────────────────
 
 SHAPES = ("box", "cylinder", "sphere")
@@ -247,7 +245,7 @@ def inject_objects_into_xml(
 
     # Rebuild keyframe qpos: arm(7) + fingers(2) + N objects * 7
     if keyframe_elem is not None:
-        arm_fingers = " ".join(str(value) for value in HOME_QPOS)
+        arm_fingers = "0 -0.785 0 -2.356 0 1.571 0.785 0.02 0.02"
         obj_qpos_parts: list[str] = []
         for spec in specs:
             px, py, pz = spec.init_pos

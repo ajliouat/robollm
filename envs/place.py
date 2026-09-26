@@ -60,6 +60,8 @@ class PlaceEnv(MultiObjectEnv):
         # Close gripper around object
         self.data.qpos[7] = 0.005
         self.data.qpos[8] = 0.005
+        self.data.ctrl[self._finger_l_act] = 0.005
+        self.data.ctrl[self._finger_r_act] = 0.005
         import mujoco
         mujoco.mj_forward(self.model, self.data)
 

@@ -1,0 +1,17 @@
+{
+  "source_revision": "f102fe10dc30bf2aa18cc16ed0dc43594051abbd",
+  "files": {
+    "multi_object_env.py": {
+      "source_path": "envs/multi_object_env.py",
+      "sha256": "79d2cc7ffd9e0a6900871e136d59a30e4ba4f83a03e9909d4ef886d3dc167142"
+    },
+    "object_spawner.py": {
+      "source_path": "envs/object_spawner.py",
+      "sha256": "893c948b024de4f80c6fb72935547b15fdedfdf51d7327bd25379f5ce12e1ba4"
+    },
+    "assets/tabletop_scene.xml": {
+      "source_path": "envs/assets/tabletop_scene.xml",
+      "sha256": "04cd5a1a7c5473017dffa8421d76b5c1318fa62d610cd2b555a0820dc978aa88"
+    }
+  }
+}

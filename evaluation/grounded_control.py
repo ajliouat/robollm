@@ -416,11 +416,14 @@ def run_study(
     protocol = load_protocol()
     selection = select_seeds(protocol, split, seeds)
     is_fixture = env_factory is not None
+    environment_snapshot = None
     if env_factory is None:
-        from envs.multi_object_env import MultiObjectEnv
+        # v1 keeps its original simulator even after the default environment is
+        # repaired. Its historical protocol/results must not silently change.
+        from evaluation.frozen_v1 import create_environment, manifest
 
-        def env_factory():
-            return MultiObjectEnv(n_objects=3, render_mode=None, max_episode_steps=200)
+        env_factory = create_environment
+        environment_snapshot = manifest()
 
     started = time.perf_counter()
     provenance = _runtime_provenance()
@@ -440,6 +443,7 @@ def run_study(
         "study_id": protocol["study_id"],
         "split": split,
         "test_fixture": is_fixture,
+        "environment_snapshot": environment_snapshot,
         "protocol": protocol,
         "protocol_sha256": hashlib.sha256(_canonical(protocol)).hexdigest(),
         "selected_seeds": [seed for _, seed in selection],

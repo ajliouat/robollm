@@ -18,8 +18,6 @@ import mujoco
 import numpy as np
 from gymnasium import spaces
 
-from envs.arm_control import HOME_QPOS as _HOME_QPOS
-
 from envs.object_spawner import (
     COLOR_NAMES,
     SHAPES,
@@ -42,6 +40,10 @@ _N_SUBSTEPS = int(_CTRL_DT / _SIM_DT)
 _DELTA_SCALE = 0.05  # m per action unit
 
 _N_ARM_JOINTS = 7
+_HOME_QPOS = np.array(
+    [0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785, 0.02, 0.02],
+    dtype=np.float64,
+)
 
 
 class MultiObjectEnv(gym.Env):
@@ -183,10 +185,6 @@ class MultiObjectEnv(gym.Env):
 
         # Set arm to home
         self.data.qpos[:9] = _HOME_QPOS
-        # Position servo targets must agree with the reset state.
-        self.data.ctrl[self._arm_act_ids] = _HOME_QPOS[:7]
-        self.data.ctrl[self._finger_l_act] = _HOME_QPOS[7]
-        self.data.ctrl[self._finger_r_act] = _HOME_QPOS[8]
 
         # Set object positions (randomized by spawner)
         for i, spec in enumerate(self._obj_specs):
