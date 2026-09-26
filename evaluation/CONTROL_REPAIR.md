@@ -44,3 +44,5 @@ No renderer, trained checkpoint or GPU is required. Exact replay on one recorded
 ## Results
 
 No reserved-scene outcome had been inspected when this source/protocol document was frozen. Results and replay evidence will be retained separately after evaluation; do not infer performance from development smoke tests.
+
+After the source freeze, the [retained result and replay](results/control-repair-2026-09-26/README.md) measured 35/100 for the repaired bundle versus 0/100 for the frozen original. The original no-outcome statement above documents the pre-evaluation freeze.
