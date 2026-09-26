@@ -1,0 +1,34 @@
+{
+  "reconstruction": "Read metadata.json.gz, then set its episodes field to concatenation of episodes arrays in episode_files order. No semantic fields omitted.",
+  "metadata_file": "metadata.json.gz",
+  "episode_files": [
+    "episodes-000-049.json.gz",
+    "episodes-050-099.json.gz",
+    "episodes-100-149.json.gz",
+    "episodes-150-199.json.gz"
+  ],
+  "files": {
+    "metadata.json.gz": {
+      "bytes": 81669,
+      "sha256": "ce38173f6337877bb6abf2421fb2e83cb6ed3c78b16dac9b9623cbddfab64878"
+    },
+    "episodes-000-049.json.gz": {
+      "bytes": 15095183,
+      "sha256": "45129dceb103232d0bf0730b21e1e903da3157491023db975d27b2b68288c0e3"
+    },
+    "episodes-050-099.json.gz": {
+      "bytes": 13650606,
+      "sha256": "d664a3902e0f8d6b3b8c273503307d407dccb062741b4fc2f2edf8c58ee76845"
+    },
+    "episodes-100-149.json.gz": {
+      "bytes": 17769424,
+      "sha256": "5c39d3e155ff384cf990664c83d82bb5069b326fe0f5ad38de49cbfc244d4a8f"
+    },
+    "episodes-150-199.json.gz": {
+      "bytes": 14423188,
+      "sha256": "5dbc8e128731197c6a1aff2eb4e83db5c2ead7a9351dbd6dbc20b9835646a0a2"
+    }
+  },
+  "reconstructed_semantic_sha256": "58bea917391adc80ef6513debd1f7d7b1112cff1f2c8a13cf2cf89134f31ae43",
+  "source_revision": "75c6573f543d567699a723769464bb232bd84ec4"
+}

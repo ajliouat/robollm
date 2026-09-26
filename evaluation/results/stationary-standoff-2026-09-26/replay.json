@@ -1,0 +1,43 @@
+{
+  "exact_semantic_equality": true,
+  "same_source_and_runtime": true,
+  "semantic_sha256": "58bea917391adc80ef6513debd1f7d7b1112cff1f2c8a13cf2cf89134f31ae43",
+  "compared_content": "All fields except timestamp_utc, elapsed_seconds, provenance and timings. Provenance compared separately and identical; planner counters, trajectories and outcomes are included.",
+  "first_run": {
+    "timestamp_utc": "2026-09-26T12:47:02.838207+00:00",
+    "elapsed_seconds": 49.1457523330464,
+    "provenance": {
+      "git_dirty": false,
+      "git_revision": "75c6573f543d567699a723769464bb232bd84ec4",
+      "machine": "arm64",
+      "packages": {
+        "gymnasium": "1.3.0",
+        "mujoco": "3.14.0",
+        "numpy": "2.4.2",
+        "torch": null
+      },
+      "platform": "Darwin",
+      "python": "3.11.14"
+    }
+  },
+  "replay_run": {
+    "timestamp_utc": "2026-09-26T12:48:53.079574+00:00",
+    "elapsed_seconds": 49.10462875000667,
+    "provenance": {
+      "git_dirty": false,
+      "git_revision": "75c6573f543d567699a723769464bb232bd84ec4",
+      "machine": "arm64",
+      "packages": {
+        "gymnasium": "1.3.0",
+        "mujoco": "3.14.0",
+        "numpy": "2.4.2",
+        "torch": null
+      },
+      "platform": "Darwin",
+      "python": "3.11.14"
+    }
+  },
+  "first_compressed_sha256": "d9f2d7f99ab48afe31380ff14b5e5ed2dd786f3f237f2bf19343c063c4916fc6",
+  "replay_compressed_sha256": "1aa0ebf79eb66000b7f3482631d6ec0702653644f07c8e6bd5b82a6ca22eb827",
+  "storage": "Public metadata and four ordered episode shards reconstruct every field of the first report. Original single-file reports remain local in ignored runs/. Replay adds no independent scenes."
+}

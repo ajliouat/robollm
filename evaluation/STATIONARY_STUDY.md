@@ -42,3 +42,7 @@ python -m evaluation.stationary_reach --split held-out --output runs/stationary-
 ```
 
 No held-out result was inspected when this method was prepared. Results will be retained separately after the freeze. The focused CI runs development scenes only; training, rendering, main-branch release and physical hardware remain separate scopes.
+
+## Recorded execution
+
+The source frozen above is revision `75c6573f543d567699a723769464bb232bd84ec4`. The [retained results and replay](results/stationary-standoff-2026-09-26/README.md) report 88/100 one-second holds for the collision-aware controller versus 29/100 for direct DLS under this contract. All 12 no-plan failures remain counted. The method and numerical settings were not changed after the outcomes.
