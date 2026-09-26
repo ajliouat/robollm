@@ -1,0 +1,43 @@
+{
+  "exact_semantic_equality": true,
+  "same_source_and_runtime": true,
+  "semantic_sha256": "05a5ab273f5a318ba95fec85725b44be4946fcb3bbd55c1fb623d93065e5f2c7",
+  "compared_content": "All report fields except timestamp_utc, elapsed_seconds and provenance; provenance compared separately and equal",
+  "first_run": {
+    "timestamp_utc": "2026-09-26T08:19:42.568301+00:00",
+    "elapsed_seconds": 49.00775991700357,
+    "provenance": {
+      "git_dirty": false,
+      "git_revision": "f102fe10dc30bf2aa18cc16ed0dc43594051abbd",
+      "machine": "arm64",
+      "packages": {
+        "gymnasium": "1.3.0",
+        "mujoco": "3.14.0",
+        "numpy": "2.4.2",
+        "torch": null
+      },
+      "platform": "Darwin",
+      "python": "3.11.14"
+    }
+  },
+  "replay_run": {
+    "timestamp_utc": "2026-09-26T08:20:59.177832+00:00",
+    "elapsed_seconds": 49.86989645799622,
+    "provenance": {
+      "git_dirty": false,
+      "git_revision": "f102fe10dc30bf2aa18cc16ed0dc43594051abbd",
+      "machine": "arm64",
+      "packages": {
+        "gymnasium": "1.3.0",
+        "mujoco": "3.14.0",
+        "numpy": "2.4.2",
+        "torch": null
+      },
+      "platform": "Darwin",
+      "python": "3.11.14"
+    }
+  },
+  "first_compressed_sha256": "1aa6b3edfd009e55f96c3b6ab6ab2fc62417fc0e9f4ce4ff5d7de5df135e23d0",
+  "replay_compressed_sha256": "a2a0c2928e591b11ddc09a53e266d708a131472793c688c7d086bbe64e36f8cd",
+  "replay_trace_storage": "The semantically identical second trace is kept locally in ignored runs/; this record and the first complete trace are retained in Git. Replay is not another independent sample."
+}

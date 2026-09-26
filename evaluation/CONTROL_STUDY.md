@@ -98,6 +98,40 @@ python -m pytest tests/test_v104.py tests/test_v106.py tests/test_v107.py \
 python -m evaluation.grounded_control --seeds 17 18 --output runs/control-smoke.json
 ```
 
-The held-out run and retained results are documented below once executed.
-Numerical replay is checked on the recorded runtime; bitwise equivalence across
-different platforms or simulator versions is not assumed.
+## Measured result and exact replay
+
+The [retained report](results/grounded-control-2026-09-26/README.md) contains
+400 episodes and 80,000 steps. Every arm produced 0/100 successes, with Wilson
+95% interval [0%, 3.6995%]. The grounded controller ended 0.331325 m from the
+target on average. Correcting target identity did not solve motor control.
+
+The frozen source revision is `f102fe10dc30bf2aa18cc16ed0dc43594051abbd`.
+To reproduce the evaluation from an existing clone, fetch the review branch,
+switch to that revision with a clean working tree, install the pinned runtime
+above, then run:
+
+```bash
+git fetch origin codex/grounded-control-evaluation
+git switch --detach f102fe10dc30bf2aa18cc16ed0dc43594051abbd
+python -m evaluation.grounded_control --split held-out --output runs/control-first.json.gz
+python -m evaluation.grounded_control --split held-out --output runs/control-replay.json.gz
+python - <<'PY'
+import gzip, json
+from evaluation.grounded_control import semantic_payload, semantic_digest
+with gzip.open('runs/control-first.json.gz', 'rt') as file:
+    first = json.load(file)
+with gzip.open('runs/control-replay.json.gz', 'rt') as file:
+    replay = json.load(file)
+assert first['provenance'] == replay['provenance']
+assert semantic_payload(first) == semantic_payload(replay)
+print(semantic_digest(first))
+PY
+```
+
+Use fresh filenames: existing artifacts are protected. Keep outputs in ignored
+`runs/` until both executions complete, so the second run retains a clean source
+checkout. On the recorded runtime, both executions produced semantic SHA-256
+`05a5ab273f5a318ba95fec85725b44be4946fcb3bbd55c1fb623d93065e5f2c7`.
+Numerical replay is checked on that runtime; bitwise equivalence across different
+platforms or simulator versions is not assumed. Repeated execution is not an
+additional independent sample.
