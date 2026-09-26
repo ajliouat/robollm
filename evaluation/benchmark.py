@@ -12,9 +12,11 @@ from __future__ import annotations
 import json
 import csv
 import hashlib
+import io
 import math
 import platform
 import subprocess
+import tempfile
 import time
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
@@ -434,8 +436,12 @@ def run_full_benchmark(
 
 
 def _save_results(report: BenchmarkReport, output_path: Path) -> None:
-    """Save aggregate and per-episode evidence as JSON and CSV."""
-    # JSON
+    """Stage a validated JSON/CSV bundle before replacing existing outputs.
+
+    Serialization or staging-write errors preserve the previous bundle. Each
+    final file replacement is atomic; this is not a multi-file transaction if
+    the process is interrupted during the final replacement sequence.
+    """
     json_data = {
         "schema_version": 2,
         "timestamp": report.timestamp,
@@ -444,34 +450,47 @@ def _save_results(report: BenchmarkReport, output_path: Path) -> None:
         "provenance": report.provenance,
         "results": [asdict(r) for r in report.results],
     }
-    json_path = output_path / "benchmark_results.json"
-    with open(json_path, "w") as f:
-        json.dump(json_data, f, indent=2, allow_nan=False)
+    # Validate every number (including nested episode/provenance records)
+    # before opening any destination or temporary file.
+    json_payload = json.dumps(json_data, indent=2, allow_nan=False)
+    aggregate_csv = io.StringIO(newline="")
+    fieldnames = [key for key in EvalMetrics.__dataclass_fields__ if key != "episodes"]
+    aggregate_writer = csv.DictWriter(aggregate_csv, fieldnames=fieldnames)
+    aggregate_writer.writeheader()
+    episode_csv = io.StringIO(newline="")
+    episode_fields = list(EpisodeResult.__dataclass_fields__)
+    episode_writer = csv.DictWriter(
+        episode_csv, fieldnames=["env_name", "policy_name", *episode_fields],
+    )
+    episode_writer.writeheader()
+    for result in json_data["results"]:
+        aggregate_writer.writerow({key: result[key] for key in fieldnames})
+        for episode in result["episodes"]:
+            episode_writer.writerow({
+                "env_name": result["env_name"],
+                "policy_name": result["policy_name"],
+                **episode,
+            })
 
-    # CSV
-    csv_path = output_path / "benchmark_results.csv"
-    if report.results:
-        fieldnames = [key for key in asdict(report.results[0]) if key != "episodes"]
-        with open(csv_path, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            for r in report.results:
-                row = asdict(r)
-                row.pop("episodes")
-                writer.writerow(row)
-
-        episodes_path = output_path / "benchmark_episodes.csv"
-        with open(episodes_path, "w", newline="") as f:
-            episode_fields = list(EpisodeResult.__dataclass_fields__)
-            writer = csv.DictWriter(f, fieldnames=["env_name", "policy_name", *episode_fields])
-            writer.writeheader()
-            for result in report.results:
-                for episode in result.episodes:
-                    writer.writerow({
-                        "env_name": result.env_name,
-                        "policy_name": result.policy_name,
-                        **asdict(episode),
-                    })
+    payloads = {
+        "benchmark_results.json": json_payload,
+        "benchmark_results.csv": aggregate_csv.getvalue(),
+        "benchmark_episodes.csv": episode_csv.getvalue(),
+    }
+    staged: dict[str, Path] = {}
+    try:
+        for filename, payload in payloads.items():
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", newline="", dir=output_path,
+                prefix=f".{filename}.", suffix=".tmp", delete=False,
+            ) as handle:
+                staged[filename] = Path(handle.name)
+                handle.write(payload)
+        for filename, staged_path in staged.items():
+            staged_path.replace(output_path / filename)
+    finally:
+        for staged_path in staged.values():
+            staged_path.unlink(missing_ok=True)
 
 
 # ── SAC policy loader ─────────────────────────────────────────────

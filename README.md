@@ -49,13 +49,20 @@ flowchart TB
 
 ## Tasks
 
-| Level | Description | Objects | Success Metric |
-|-------|-------------|---------|----------------|
-| **L1** | Pick and place | 1 | Object at target ± 2cm |
-| **L2** | Color pick | 3 | Correct object at target |
-| **L3** | Stack | 2–3 | Stable stack, correct order |
-| **L4** | Sort | 4–6 | All in correct bins |
-| **L5** | Language | 3+ | All sub-tasks completed |
+| Level | Description | Default objects | Implemented success flag |
+|-------|-------------|-----------------|--------------------------|
+| **L1** | Pick and place | 1 | Object–goal distance below 4cm |
+| **L2** | Color pick | 3 | Correct object grasped and lifted above 8cm from the table |
+| **L3** | Stack | 3 | Ordered object-position checks have reached the full stack count |
+| **L4** | Sort | 3 | Every object within 5cm (XY) of its assigned target zone |
+| **L5** | Language | 3 | Final scene predicates satisfied |
+
+These are prototype success checks. L1's termination condition also requires
+a lift, but its reported success flag does not; L3's stack count only increases
+and does not establish sustained stability. L4 uses target coordinates, not
+physical bins. L5 predicates can hold initially and do not verify all instructed
+actions. Strengthening these task contracts is necessary before interpreting
+success rates as complete manipulation performance.
 
 ## Historical Baseline Results
 

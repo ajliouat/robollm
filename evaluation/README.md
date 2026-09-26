@@ -68,6 +68,11 @@ consumers should use `ci95_low` and `ci95_high`, not infer endpoints from `ci95`
 Differences in negative shaped returns should be expressed as absolute return
 differences; ratios such as “2.6× better” are not meaningful performance claims.
 
+The existing CLI threshold checks compare point estimates with historical
+reference values, including zero thresholds. Their PASS/FAIL labels are not
+statistical acceptance tests or evidence of useful performance; especially do
+not interpret them that way for a three-episode smoke run.
+
 ## Output format (schema version 2)
 
 | File | Evidence |
@@ -75,6 +80,12 @@ differences; ratios such as “2.6× better” are not meaningful performance cl
 | `benchmark_results.json` | Aggregate metrics, integer success counts, Wilson endpoints and every episode outcome; protocol, Git revision/dirty flag, Python/package/platform versions, optional checkpoint SHA-256 hashes. |
 | `benchmark_results.csv` | Flat aggregate metrics, without embedding episode lists. |
 | `benchmark_episodes.csv` | One row per episode: environment/policy labels, seeds, initial/final success, return, length, termination and truncation. |
+
+All three payloads are serialized and staged before replacing existing output
+files. Serialization or staging-write failures preserve the previous bundle;
+individual replacements are atomic, but a process interruption during the
+replacement sequence is not covered by a multi-file transaction. Use a fresh
+output directory for each evidence-bearing run.
 
 A dirty checkout is explicitly marked and is not an exact code identifier.
 For shared results, commit the implementation first, run from that clean

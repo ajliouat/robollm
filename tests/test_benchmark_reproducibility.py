@@ -184,6 +184,46 @@ def test_exports_keep_aggregate_and_episode_evidence_consistent(tmp_path):
     assert sum(row["success"] == "True" for row in raw_rows) == 2
 
 
+@pytest.mark.parametrize("bad_value", [math.nan, math.inf, -math.inf])
+def test_invalid_export_preserves_previous_bundle(tmp_path, bad_value):
+    env = TinyEnv()
+    metrics = evaluate_policy(env, lambda obs, info: 0, n_episodes=2)
+    report = BenchmarkReport(results=[metrics])
+    _save_results(report, tmp_path)
+    before = {path.name: path.read_bytes() for path in tmp_path.iterdir()}
+    metrics.mean_return = bad_value
+    with pytest.raises(ValueError, match="Out of range float"):
+        _save_results(report, tmp_path)
+    after = {path.name: path.read_bytes() for path in tmp_path.iterdir()}
+    assert after == before
+
+
+def test_staging_failure_preserves_bundle_and_removes_temporary_files(tmp_path, monkeypatch):
+    from evaluation import benchmark
+
+    env = TinyEnv()
+    metrics = evaluate_policy(env, lambda obs, info: 0, n_episodes=2)
+    report = BenchmarkReport(results=[metrics])
+    _save_results(report, tmp_path)
+    before = {path.name: path.read_bytes() for path in tmp_path.iterdir()}
+    original_open = benchmark.tempfile.NamedTemporaryFile
+    calls = 0
+
+    def fail_second_temporary(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("simulated staging failure")
+        return original_open(*args, **kwargs)
+
+    monkeypatch.setattr(benchmark.tempfile, "NamedTemporaryFile", fail_second_temporary)
+    metrics.mean_return += 1  # A distinguishable replacement was staged first.
+    with pytest.raises(OSError, match="simulated staging failure"):
+        _save_results(report, tmp_path)
+    after = {path.name: path.read_bytes() for path in tmp_path.iterdir()}
+    assert after == before
+
+
 def test_random_mujoco_rollouts_reproduce_without_rendering():
     from envs.move_to import MoveToEnv
 
