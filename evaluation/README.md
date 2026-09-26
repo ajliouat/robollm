@@ -4,7 +4,11 @@ For the new named-target, multi-object control study, see
 [Grounded reaching](CONTROL_STUDY.md). It exercises the hierarchical executor
 with one reaching primitive. The subsequent [physical-model repair study](CONTROL_REPAIR.md)
 compares the frozen original system with corrected geometry, initialization and
-ideal gravity support on a fresh, separately reserved scene set. The general benchmark described below continues
+ideal gravity support on a fresh, separately reserved scene set. The next
+[stationary standoff study](STATIONARY_STUDY.md) defines a different task: hold
+a fixed goal above the object for one second without forbidden simulator
+contacts or more than 5 mm of object-surface motion. Its scores must not be
+compared directly with the older moving-center proximity scores. The general benchmark described below continues
 to measure each environment's own success flag; its metric was not silently
 redefined to match that study.
 
